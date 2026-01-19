@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma Collection de Billets</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Menu latéral */
+        .sidebar { width: 300px; background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%); color: white; padding: 24px; overflow-y: auto; box-shadow: 4px 0 10px rgba(0,0,0,0.1); }
+        .sidebar h1 { font-size: 22px; margin-bottom: 30px; text-align: center; border-bottom: 2px solid rgba(255,255,255,0.2); padding-bottom: 14px; }
+        .menu-section { margin-bottom: 28px; }
+        .menu-section h2 { font-size: 11px; text-transform: uppercase; color: #93c5fd; margin-bottom: 10px; letter-spacing: 1px; }
+        .menu-btn { width: 100%; padding: 11px 14px; background: transparent; border: none; color: white; text-align: left; border-radius: 8px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 14px; }
+        .menu-btn:hover { background: rgba(255,255,255,0.1); }
+        .menu-btn.active { background: #1e40af; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        
+        /* Contenu principal */
+        .main-content { flex: 1; overflow-y: auto; padding: 30px; }
+        .collection-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+        .collection-header h2 { font-size: 30px; color: #1e3a8a; }
+        .search-box { padding: 10px 16px; border-radius: 8px; border: 2px solid #cbd5e1; background: white; font-size: 14px; min-width: 300px; }
+        .search-box:focus { outline: none; border-color: #3b82f6; }
+        .stats { color: #64748b; font-size: 14px; margin-bottom: 20px; }
+        
+        /* Grille de billets */
+        .banknotes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 22px; }
+        .banknote-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s; position: relative; cursor: pointer; }
+        .banknote-card:hover { transform: translateY(-8px); box-shadow: 0 12px 24px rgba(0,0,0,0.15); }
+        
+        /* Animation flip recto/verso */
+        .flip-container { perspective: 1000px; height: 200px; }
+        .flipper { position: relative; transform-style: preserve-3d; transition: transform 0.6s; width: 100%; height: 100%; }
+        .banknote-card:hover .flipper { transform: rotateY(180deg); }
+        .front, .back { backface-visibility: hidden; width: 100%; height: 100%; position: absolute; top: 0; left: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 13px; padding: 0; text-align: center; }
+        .front { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .back { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); transform: rotateY(180deg); }
+        .front img, .back img { width: 100%; height: 100%; object-fit: contain; position: absolute; top: 0; left: 0; background: #f3f4f6; }
+        
+        /* Informations billet */
+        .banknote-info { padding: 14px; }
+        .banknote-info h3 { font-size: 15px; color: #1e3a8a; margin-bottom: 6px; }
+        .banknote-details { display: flex; flex-wrap: wrap; gap: 6px; }
+        .badge { display: inline-block; padding: 3px 10px; background: #e0f2fe; color: #0369a1; border-radius: 12px; font-size: 11px; font-weight: 500; }
+        
+        /* Bouton favori */
+        .favorite-btn { position: absolute; top: 10px; right: 10px; background: white; border: none; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .favorite-btn:hover { transform: scale(1.1); }
+        .favorite-btn.active { background: #dc2626; }
+        .heart { color: #dc2626; font-size: 18px; }
+        .favorite-btn.active .heart { color: white; }
+        
+        /* Sections */
+        .section-content { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 900px; }
+        .section-content h2 { color: #1e3a8a; margin-bottom: 14px; font-size: 28px; }
+        .section-content p { color: #475569; line-height: 1.6; margin-bottom: 14px; }
+        .event-item { background: #f8fafc; padding: 18px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid #3b82f6; }
+        .event-date { color: #3b82f6; font-weight: 600; font-size: 13px; margin-bottom: 3px; }
+        .event-title { color: #1e293b; font-size: 15px; }
+        .source-link { display: block; color: #3b82f6; text-decoration: none; padding: 7px 0; transition: all 0.3s; }
+        .source-link:hover { color: #1e40af; padding-left: 6px; }
+        
+        /* Responsive pour téléphone */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; max-height: 300px; overflow-y: auto; }
+            .main-content { padding: 16px; }
+            .collection-header { flex-direction: column; align-items: stretch; }
+            .search-box { min-width: 100%; width: 100%; }
+            .banknotes-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+            .flip-container { height: 140px; }
+            .banknote-info h3 { font-size: 13px; }
+            .badge { font-size: 10px; padding: 2px 8px; }
+        }
+
+/* Modal zoom pour les billets */
+.modal-zoom {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-zoom.active {
+    display: flex;
+}
+
+.modal-content {
+    max-width: 90%;
+    max-height: 90%;
+    position: relative;
+}
+
+.modal-image {
+    height: auto; /* Hauteur fixe */
+    width: 2000px; /* Largeur automatique et proportionnelle */
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.close-modal {
+    position: absolute;
+    top: 20px;
+    right: 40px;
+    color: white;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+.close-modal:hover {
+    color: #f00;
+}
+
+.modal-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.3);
+    color: white;
+    font-size: 30px;
+    padding: 20px;
+    cursor: pointer;
+    border-radius: 5px;
+    user-select: none;
+}
+
+.modal-nav:hover {
+    background: rgba(255,255,255,0.5);
+}
+
+.prev-nav {
+    left: 20px;
+}
+
+.next-nav {
+    right: 20px;
+}
+
+    </style>
+
+</head>
+<body>
+    <aside class="sidebar">
+        <h1>💰 Ma Collection de Billets</h1>
+        <div class="menu-section">
+            <button class="menu-btn active" onclick="showSection('presentation')">📖 Présentation</button>
+        </div>
+        <div class="menu-section">
+            <h2>Collection</h2>
+            <button class="menu-btn" onclick="filterContinent('tous')">🌍 Tous les billets</button>
+            <button class="menu-btn" onclick="filterContinent('tunisie')">🇹🇳 Tunisie</button>
+            <button class="menu-btn" onclick="filterContinent('afrique')">🌍 Afrique (hors Tunisie)</button>
+            <button class="menu-btn" onclick="filterContinent('amerique')">🌎 Amérique</button>
+            <button class="menu-btn" onclick="filterContinent('asie')">🌏 Asie</button>
+            <button class="menu-btn" onclick="filterContinent('oceanie')">🏝️ Océanie</button>
+            <button class="menu-btn" onclick="filterContinent('europe')">🇪🇺 Europe</button>
+            <button class="menu-btn" onclick="showCoins()">Pièces de collection</button>
+        </div>
+        <div class="menu-section">
+            <button class="menu-btn" onclick="showSection('events')">📅 Événements à venir</button>
+        </div>
+        <div class="menu-section">
+            <button class="menu-btn" onclick="showSection('sources')">📚 Sources</button>
+        </div>
+    </aside>
+
+    <main class="main-content" id="mainContent"></main>
+
+    <script>
+        let allBanknotes = [];
+        let favorites = [];
+        let currentSection = 'presentation';
+        let currentContinent = 'tous';
+        let currentSearchTerm = '';
+
+        // Charger favoris
+        async function loadFavorites() {
+            try {
+                const result = await window.storage.get('banknote-favorites');
+                if (result && result.value) favorites = JSON.parse(result.value);
+            } catch (e) {}
+        }
+
+        async function saveFavorites() {
+            try {
+                await window.storage.set('banknote-favorites', JSON.stringify(favorites));
+            } catch (e) {}
+        }
+
+        function toggleFavorite(id) {
+            const idx = favorites.indexOf(id);
+            if (idx > -1) favorites.splice(idx, 1);
+            else favorites.push(id);
+            saveFavorites();
+            if (currentSection === 'collection') renderCollection();
+        }
+
+        function showSection(section) {
+            currentSection = section;
+            document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const main = document.getElementById('mainContent');
+            
+            if (section === 'presentation') {
+                main.innerHTML = `
+                    <div class="section-content">
+                        <h2>Bienvenue dans ma Collection</h2>
+                        <p>Passionné de numismatique, j'ai commencé cette collection il y a plusieurs années. Chaque billet raconte une histoire unique sur la culture, l'histoire et l'économie de son pays d'origine.</p>
+                        <p>Ma collection s'étend sur tous les continents, avec une attention particulière portée aux billets tunisiens qui représentent mon patrimoine culturel.</p>
+                        <p>Utilisez le menu à gauche pour explorer les différentes sections de ma collection ainsi que les événements àvenir et les sources de mes connaissances.</p>
+                        <ul style="margin-top: 20px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px;">
+                       
+                    <p>Voici la classification des etats de conservation des billets de banque</p>                    
+
+                    <li>UNC (Uncirculated) – Neuf parfait, jamais circulé</li>
+
+                    <li>AUNC (About Uncirculated) – Presque neuf</li>
+
+                    <li>SUP (Superbe) – Très léger début d’usure</li>
+
+                    <li>XF / TB (Extremely Fine / Très Beau) – Quelques plis</li>
+
+                    <li>VF / TTB (Very Fine / Très Très Beau) – Plis visibles, bon aspect</li>
+
+                    <li>F / B (Fine / Beau) – Usure nette</li>
+
+                    <li>VG / MB (Very Good / Moyen Beau) – Très usé</li>
+
+                    <li>G / M (Good / Médiocre) – Fortement usé, parfois petites déchirures</li>
+
+                    <li>P (Poor) – Très fortement abîmé, limite collection</li>
+
+                    <li>N/A - Le billet nes pas encore dans la collection</li>
+                       <ul/>
+                    </div>
+                `;
+            } else if (section === 'events') {
+                main.innerHTML = `
+                    <div class="section-content">
+                        <h2>Événements à venir</h2>
+                        <div class="event-item">
+                            <div class="event-date">-PRINTEMPS 2026</div>
+                            <div class="event-title">Exposition Temporaire Numismatique - Tunis</div>
+<p>Le jeune numismate et collectionneur tunisien Hedi Regayeg a gracieusement accepté de nous présenter quelques billets de banque de sa propre
+ collection dans cette exposition temporaire. Le thème qu'il a choisi pour cette exposition, qui se déroulera au Musée de la Monnaie au printemps 2026,
+ porte sur les portraits d’hommes politiques et la commémoration de figures politiques sur les billets de banque du monde.</p>
+                        </div>
+                    </div>
+                `;
+            } else if (section === 'sources') {
+                main.innerHTML = `
+                    <div class="section-content">
+                        <h2>Sources et Références</h2>
+                        <p>Mes connaissances et informations proviennent de sources fiables dans le domaine de la numismatique :</p>
+                        <a href="https://www.bct.gov.tn" class="source-link" target="_blank">→ Banque Centrale de Tunisie</a>
+                        <a href="https://www.worldpapermoney.com" class="source-link" target="_blank">→ World Paper Money</a>
+                        <a href="https://www.numista.com" class="source-link" target="_blank">→ Numista</a>
+                        <a href="https://www.banknoteworld.com" class="source-link" target="_blank">→ BanknoteWorld</a>
+                    </div>
+                `;
+            }
+        }
+
+        function filterContinent(continent) {
+            currentContinent = continent;
+            currentSection = 'collection';
+            currentSearchTerm = '';
+            document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderCollection();
+        }
+
+function handleSearch(value) {
+    currentSearchTerm = value;
+    renderCollection();
+}
+
+function renderCollection() {
+    const searchTerm = currentSearchTerm.toLowerCase();
+    
+    let filtered = allBanknotes.filter(b => {
+        const matchContinent = currentContinent === 'tous' || 
+            (currentContinent === 'tunisie' && b.pays === 'TUNISIE') ||
+            (currentContinent === 'afrique' && b.continent === 'AFRIQUE' && b.pays !== 'TUNISIE') ||
+            (currentContinent !== 'tunisie' && currentContinent !== 'afrique' && b.continent === currentContinent.toUpperCase());
+        const matchSearch = !searchTerm || 
+    b.pays.toLowerCase().includes(searchTerm) ||
+    b.devise.toLowerCase().includes(searchTerm) ||
+    b.valeur.toString().toLowerCase().includes(searchTerm) ||
+    b.annee.toString().toLowerCase().includes(searchTerm);
+        return matchContinent && matchSearch;
+    });
+
+    const main = document.getElementById('mainContent');
+    const continentNames = {
+        'tous': 'Tous les billets',
+        'tunisie': 'Tunisie',
+        'afrique': 'Afrique (hors Tunisie)',
+        'amerique': 'Amérique',
+        'asie': 'Asie',
+        'oceanie': 'Océanie',
+        'europe': 'Europe'
+    };
+
+    // Vérifier si c'est le premier rendu
+    const existingSearch = document.getElementById('collectionSearch');
+    const savedValue = existingSearch ? existingSearch.value : currentSearchTerm;
+
+    main.innerHTML = `
+        <div class="collection-header">
+            <h2>${continentNames[currentContinent]}</h2>
+            <input type="text" class="search-box" id="collectionSearch" placeholder="Rechercher un pays, devise, valeur..." value="${savedValue}">
+        </div>
+        <div class="stats">${filtered.length} billet${filtered.length > 1 ? 's' : ''} • ${favorites.length} favori${favorites.length > 1 ? 's' : ''}</div>
+        <div class="banknotes-grid">
+            ${filtered.map(b => `
+                <div class="banknote-card" onclick='openModal(${JSON.stringify(b).replace(/'/g, "&#39;")}, true)'>
+                    <button class="favorite-btn ${favorites.includes(b.id) ? 'active' : ''}" onclick="toggleFavorite(${b.id})">
+                        <span class="heart">${favorites.includes(b.id) ? '❤' : '♡'}</span>
+                    </button>
+                    <div class="flip-container">
+                        <div class="flipper">
+                            <div class="front">
+                                ${b.recto ? `<img src="${b.recto}" alt="Recto">` : `
+                                    <div style="z-index: 1; position: relative;">
+                                        <div style="font-size: 40px; margin-bottom: 10px;">${b.flag || '💵'}</div>
+                                        <div><strong>RECTO</strong></div>
+                                        <div style="margin-top: 6px; font-size: 12px; opacity: 0.9;">Survolez pour voir le verso</div>
+                                    </div>
+                                `}
+                            </div>
+                            <div class="back">
+                                ${b.verso ? `<img src="${b.verso}" alt="Verso">` : `
+                                    <div style="z-index: 1; position: relative;">
+                                        <div style="font-size: 40px; margin-bottom: 10px;">${b.flag || '💵'}</div>
+                                        <div><strong>VERSO</strong></div>
+                                        <div style="margin-top: 6px; font-size: 12px; opacity: 0.9;">Photo à ajouter</div>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="banknote-info">
+                        <h3>${b.valeur} ${b.devise}</h3>
+                        <div class="banknote-details">
+                            <span class="badge">${b.pays}</span>
+                            <span class="badge">${b.annee}</span>
+                            <span class="badge">${b.etat}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        ${filtered.length === 0 ? '<div style="text-align: center; color: #64748b; padding: 40px;">Aucun billet trouvé</div>' : ''}
+    `;
+    
+    // Attacher l'événement de recherche et restaurer le focus
+    const searchBox = document.getElementById('collectionSearch');
+    if (searchBox) {
+        const cursorPos = savedValue.length;
+        searchBox.addEventListener('input', (e) => {
+            currentSearchTerm = e.target.value;
+            renderCollection();
+        });
+        searchBox.focus();
+        searchBox.setSelectionRange(cursorPos, cursorPos);
+    }
+}
+
+        // ============================================================
+        // SECTION À REMPLIR : VOS BILLETS
+        // ============================================================
+        function initBanknotes() {
+            allBanknotes = [
+                // Ajoutez vos billets ici
+{id: 313, continent: "AFRIQUE", pays: "TUNISIE", valeur: "1/2", devise: "DINAR", annee: "1958", etat: "G", flag: "🇹🇳", 
+ recto: "https://en.numista.com/catalogue/photos/tunisie/67b2591a08b033.15202905-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/67b2591a77bde8.27175877-original.jpg"},
+
+{id: 314, continent: "AFRIQUE", pays: "TUNISIE", valeur: "1", devise: "DINAR", annee: "1958", etat: "G", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/67b25aeff17c03.34516018-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/67b25af084a199.09543856-original.jpg"},
+
+{id: 315, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "1958", etat: "F", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/6552867713faf6.17126940-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/65528677744ab5.99693805-original.jpg"},
+
+{id: 316, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "1960", etat: "N/A", flag: "🇹🇳",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P060_5DIN-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P060_5DINv-xs.jpg"},
+
+{id: 317, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "1962", etat: "N/A", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/67b26dc1be0f49.37269395-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/67b26dc23cbc29.97982257-original.jpg"},
+
+{id: 318, continent: "AFRIQUE", pays: "TUNISIE", valeur: "1/2", devise: "DINARS", annee: "1965", etat: "F", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/66b0e1f0b52d20.83473969-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/66b0e1f249c551.68598568-original.jpg"},
+
+{id: 319, continent: "AFRIQUE", pays: "TUNISIE", valeur: "1", devise: "DINARS", annee: "1965", etat: "F", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/67b2517361aed6.84212954-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/67b25173d0dc71.29303019-original.jpg"},
+
+{id: 320, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "1965", etat: "F", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/67b24f76d0aae9.52049360-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/67b24f774788b1.91313303-original.jpg"},
+
+{id: 321, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "1969", etat: "F", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/67b24d224c86b7.60848338-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/67b24d22a94dd5.16510013-original.jpg"},
+
+{id: 322, continent: "AFRIQUE", pays: "TUNISIE", valeur: "1/2", devise: "DINARS", annee: "1972", etat: "F", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/684189e7a76ad1.25800166-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/684189e90cc890.75009569-original.jpg"},
+
+{id: 323, continent: "AFRIQUE", pays: "TUNISIE", valeur: "1", devise: "DINARS", annee: "1972", etat: "F", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/6640c02bd175f9.91004173-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/6640c02c6a99c0.61724444-original.jpg"},
+
+{id: 324, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "1972", etat: "F", flag: "🇹🇳",
+ recto: "https://en.numista.com/sales_archive/pictures/660dc973c5fd3.jpg",
+ verso: "https://en.numista.com/sales_archive/pictures/660dc974a4742.jpg"},
+
+{id: 325, continent: "AFRIQUE", pays: "TUNISIE", valeur: "1/2", devise: "DINARS", annee: "1973", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/67b21cdc895d51.74858390-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/67b21cdd1df4b1.91087775-original.jpg"},
+
+{id: 326, continent: "AFRIQUE", pays: "TUNISIE", valeur: "1", devise: "DINARS", annee: "1973", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/64f1c03f8abbd0.13811525-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/64f1c0407c4124.48410889-original.jpg"},
+
+{id: 327, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "1973", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/66b0e2984e0640.73354980-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/66b0e29a30cf21.89483909-original.jpg"},
+
+{id: 328, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "1973", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/67b2186d097c63.01004608-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/67b2186d91c283.54769410-original.jpg"},
+
+{id: 329, continent: "AFRIQUE", pays: "TUNISIE", valeur: "1", devise: "DINAR", annee: "1980", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/66b0e000c699d3.61421597-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/66b0e00269fa18.19007216-original.jpg"},
+
+{id: 330, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "1980", etat: "UNC", flag: "🇹🇳",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P075_5DIN-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P075_5DINv-xs.jpg"},
+
+{id: 331, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "1980", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/67b20d0aedbc30.59039413-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/67b20d0b7dedb7.05457699-original.jpg"},
+
+{id: 332, continent: "AFRIQUE", pays: "TUNISIE", valeur: "20", devise: "DINARS", annee: "1980", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/sales_archive/pictures/693fd5b76c8f2.jpg",
+ verso: "https://en.numista.com/sales_archive/pictures/693fd5b8767ea.jpg"},
+
+{id: 333, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "1983", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/sales_archive/pictures/67c02c2a2321f.jpg",
+ verso: "https://en.numista.com/sales_archive/pictures/67c02c29a90c8.jpg"},
+
+{id: 334, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "1986", etat: "UNC", flag: "🇹🇳",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P084_10DIN-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P084_10DINv-xs.jpg"},
+
+{id: 335, continent: "AFRIQUE", pays: "TUNISIE", valeur: "20", devise: "DINARS", annee: "1983", etat: "UNC", flag: "🇹🇳",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P081_20DIN-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P081_20DINv-xs.jpg"},
+
+{id: 336, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "1983", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/67b145307176c8.44626484-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/67b14530f25b81.13723207-original.jpg"},
+
+{id: 337, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "1993", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/sales_archive/pictures/66e55acc44eed.jpg",
+ verso: "https://en.numista.com/sales_archive/pictures/66e55accd7f21.jpg"},
+
+{id: 338, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "2008", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/63d932237ba550.35579938-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/63d93224b0fbd3.10880360-original.jpg"},
+
+{id: 339, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "1994", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/62f28aa3534b51.76655798-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/62f28aa42fd632.21596600-original.jpg"},
+
+{id: 340, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "1994", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/65d6af460ed506.34781973-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/65d6af47d46306.21083794-original.jpg"},
+
+{id: 341, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "2005", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/6397558acc1950.40699559-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/6397558b9ebed1.51007678-original.jpg"},
+
+{id: 342, continent: "AFRIQUE", pays: "TUNISIE", valeur: "20", devise: "DINARS", annee: "1992", etat: "UNC", flag: "🇹🇳",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P088_20DIN-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P088_20DINv-xs.jpg"},
+
+{id: 343, continent: "AFRIQUE", pays: "TUNISIE", valeur: "30", devise: "DINARS", annee: "1997", etat: "UNC", flag: "🇹🇳",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P089_30DIN-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P089_30DINv-xs.jpg"},
+
+{id: 344, continent: "AFRIQUE", pays: "TUNISIE", valeur: "50", devise: "DINARS", annee: "2008", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/67b141e0ebb9e5.47249199-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/67b141e18c3d06.89962027-original.jpg"},
+
+{id: 345, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "2013", etat: "VF", flag: "🇹🇳",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P095_5DIN-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P095_5DINv-xs.jpg"},
+
+{id: 346, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "2013", etat: "UNC", flag: "🇹🇳",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P096_10DIN-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P096_10DINv-xs.jpg"},
+
+{id: 347, continent: "AFRIQUE", pays: "TUNISIE", valeur: "20", devise: "DINARS", annee: "2011", etat: "AUNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/689a719a211f95.89053756-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/689a719c523761.53566829-original.jpg"},
+
+{id: 348, continent: "AFRIQUE", pays: "TUNISIE", valeur: "20", devise: "DINARS", annee: "2011", etat: "AUNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/689a719a211f95.89053756-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/689a719c523761.53566829-original.jpg"},
+
+{id: 349, continent: "AFRIQUE", pays: "TUNISIE", valeur: "50", devise: "DINARS", annee: "2011", etat: "AUNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/6504920cea14b0.00747841-original.jpg",
+ verso: "https://en.numista.com/sales_archive/pictures/660dc9d85b11e.jpg"},
+
+{id: 350, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "2022", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/63dda54a1cdcd6.04585215-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/63dda54c05f5f3.36834753-original.jpg"},
+
+{id: 351, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "2020", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/623c47fd98d946.81708170-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/623c47fe3d3989.49513716-original.jpg"},
+
+{id: 352, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "2025", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/623c47fd98d946.81708170-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/623c47fe3d3989.49513716-original.jpg"},
+
+{id: 353, continent: "AFRIQUE", pays: "TUNISIE", valeur: "20", devise: "DINARS", annee: "2017", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/63c9055abca179.49493896-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/63c9055bbcba35.35803495-original.jpg"},
+
+{id: 354, continent: "AFRIQUE", pays: "TUNISIE", valeur: "50", devise: "DINARS", annee: "2022", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/650495b0f12e42.66992893-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/650495b259ad44.48848616-original.jpg"},
+
+{id: 355, continent: "AFRIQUE", pays: "TUNISIE", valeur: "50", devise: "DINARS", annee: "2025", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/650495b0f12e42.66992893-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/650495b259ad44.48848616-original.jpg"},
+
+{id: 356, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS R", annee: "1980", etat: "F", flag: "🇹🇳",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P075_5DIN-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/TUN_P075_5DINv-xs.jpg"},
+
+{id: 357, continent: "AFRIQUE", pays: "TUNISIE", valeur: "50", devise: "DINARS R", annee: "2011", etat: "F", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/6504920cea14b0.00747841-original.jpg",
+ verso: "https://en.numista.com/sales_archive/pictures/660dc9d85b11e.jpg"},
+
+{id: 358, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS R", annee: "2020", etat: "UNC", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/623c47fd98d946.81708170-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/623c47fe3d3989.49513716-original.jpg"},
+
+{id: 359, continent: "AFRIQUE", pays: "TUNISIE", valeur: "20", devise: "DINARS R", annee: "2017", etat: "F", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/63c9055abca179.49493896-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/63c9055bbcba35.35803495-original.jpg"},
+
+{id: 360, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS R", annee: "2005", etat: "G", flag: "🇹🇳",
+ recto: "https://en.numista.com/catalogue/photos/tunisie/6397558acc1950.40699559-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/tunisie/6397558b9ebed1.51007678-original.jpg"},
+
+// ============================================================
+// FIN DES BILLETS TUNISIENS
+// N'oubliez pas la virgule à la fin si vous ajoutez d'autres billets après !
+// ============================================================
+               
+                 // AFRIQUE
+// ============================================================
+// BILLETS D'AFRIQUE (HORS TUNISIE) - 131 billets
+// ============================================================
+// COPIEZ ce code APRÈS les billets tunisiens (n'oubliez pas la virgule)
+// ============================================================
+
+// MAROC (ID 25-40)
+{id: 25, continent: "AFRIQUE", pays: "MAROC", valeur: "5", devise: "DIRHAM", annee: "1970", etat: "UNC", flag: "🇲🇦",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/MAR_P056_5MAD-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/MAR_P056_5MADv-xs.jpg"},
+
+{id: 26, continent: "AFRIQUE", pays: "MAROC", valeur: "200", devise: "DIRHAM", annee: "1987", etat: "G", flag: "🇲🇦",
+ recto: "https://images3.cgb.fr/images/billets/p18/p18_1258a.jpg",
+ verso: "https://images3.cgb.fr/images/billets/p18/p18_1258r.jpg"},
+
+{id: 27, continent: "AFRIQUE", pays: "MAROC", valeur: "20", devise: "DIRHAM", annee: "2002", etat: "F", flag: "🇲🇦",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/MAR_P068_20MAD-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/MAR_P068_20MADv-xs.jpg"},
+
+{id: 28, continent: "AFRIQUE", pays: "MAROC", valeur: "100", devise: "DIRHAM", annee: "2002", etat: "XF", flag: "🇲🇦",
+ recto: "https://en.numista.com/catalogue/photos/maroc/5ea721dd3979b4.30691535-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/maroc/5ea721dd7c5846.72574535-original.jpg"},
+
+{id: 29, continent: "AFRIQUE", pays: "MAROC", valeur: "200", devise: "DIRHAM", annee: "2002", etat: "XF", flag: "🇲🇦",
+ recto: "https://en.numista.com/catalogue/photos/maroc/5ea7230f615466.06010594-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/maroc/5ea7230fb2fd68.41369831-original.jpg"},
+
+{id: 30, continent: "AFRIQUE", pays: "MAROC", valeur: "20", devise: "DIRHAM", annee: "2012", etat: "UNC", flag: "🇲🇦",
+ recto: "https://en.numista.com/catalogue/photos/maroc/63df88824cfea0.57603429-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/maroc/63df88843b37e8.83552016-original.jpg"},
+
+{id: 31, continent: "AFRIQUE", pays: "MAROC", valeur: "50", devise: "DIRHAM", annee: "2012", etat: "UNC", flag: "🇲🇦",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/MAR_P075_50MAD-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/MAR_P075_50MADv-xs.jpg"},
+
+{id: 32, continent: "AFRIQUE", pays: "MAROC", valeur: "100", devise: "DIRHAM", annee: "2012", etat: "F", flag: "🇲🇦",
+ recto: "https://en.numista.com/catalogue/photos/maroc/651ae8243d8ed3.07347329-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/maroc/651ae82571bf46.51687727-original.jpg"},
+
+{id: 33, continent: "AFRIQUE", pays: "MAROC", valeur: "200", devise: "DIRHAM", annee: "2012", etat: "AUNC", flag: "🇲🇦",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/MAR_P077_200MAD-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/MAR_P077_200MADv-xs.jpg"},
+
+{id: 34, continent: "AFRIQUE", pays: "MAROC", valeur: "20", devise: "DIRHAM", annee: "2023", etat: "UNC", flag: "🇲🇦",
+ recto: "https://banknotenews.com/wp-content/uploads/2024/08/Morocco_BAM_20_dirhams_2023.00.00_B520a_PNL_09_987754_f.jpg",
+ verso: "https://en.numista.com/catalogue/photos/maroc/66c64be046c240.91740771-original.jpg"},
+
+{id: 35, continent: "AFRIQUE", pays: "MAROC", valeur: "50", devise: "DIRHAM", annee: "2023", etat: "UNC", flag: "🇲🇦",
+ recto: "https://en.numista.com/catalogue/photos/maroc/66b0d2f4bba9b3.49204991-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/maroc/66b0d2f5987728.82275815-original.jpg"},
+
+{id: 36, continent: "AFRIQUE", pays: "MAROC", valeur: "100", devise: "DIRHAM", annee: "2023", etat: "UNC", flag: "🇲🇦",
+ recto: "https://en.numista.com/catalogue/photos/maroc/6560a30c439171.17285730-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/maroc/6560a30ce61844.68673811-original.jpg"},
+
+{id: 37, continent: "AFRIQUE", pays: "MAROC", valeur: "200", devise: "DIRHAM", annee: "2023", etat: "UNC", flag: "🇲🇦",
+ recto: "https://fr.foronum.com/img/billetes/marruecos/foronum-893514-marruecos-200-dirhams.jpg",
+ verso: "https://fr.foronum.com/img/billetes/marruecos/foronum12555-327081-marruecos-200-dirhams.jpg"},
+
+{id: 1002, continent: "AFRIQUE", pays: "MAROC", valeur: "100", devise: "DIRHAM", annee: "2025", etat: "UNC", flag: "🇲🇦",
+ recto: "https://banknotenews.com/wp-content/uploads/2025/12/Morocco_BAM_100_dirhams_2025.00.00_B524a_PNL_04_920582_f-1536x734.jpg",
+ verso: "https://banknotenews.com/wp-content/uploads/2025/12/Morocco_BAM_100_dirhams_2025.00.00_B524a_PNL_04_920582_r-1536x743.jpg"},
+
+{id: 38, continent: "AFRIQUE", pays: "MAROC", valeur: "50", devise: "DIRHAM", annee: "2009", etat: "UNC", flag: "🇲🇦",
+ recto: "https://en.numista.com/catalogue/photos/maroc/65589523ccdd43.67681670-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/maroc/65589525247ba6.27201502-original.jpg"},
+
+{id: 39, continent: "AFRIQUE", pays: "MAROC", valeur: "25", devise: "DIRHAM", annee: "2012", etat: "UNC", flag: "🇲🇦",
+ recto: "https://en.numista.com/catalogue/photos/maroc/63ee0e6c34caf4.13943497-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/maroc/63ee0e6d92b1e8.02370404-original.jpg"},
+
+{id: 40, continent: "AFRIQUE", pays: "MAROC", valeur: "20", devise: "DIRHAM", annee: "2019", etat: "UNC", flag: "🇲🇦",
+ recto: "https://en.numista.com/catalogue/photos/maroc/63ee0c9f4d9ef9.04087206-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/maroc/63ee0ca091bb11.96161948-original.jpg"},
+
+// LIBYE (ID 1-11)
+{id: 1, continent: "AFRIQUE", pays: "LIBYE", valeur: "1/4", devise: "LYD", annee: "1990", etat: "F", flag: "🇱🇾",
+ recto: "https://en.numista.com/catalogue/photos/libye/67d37edd0a8488.57568742-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/libye/67d37edd92f743.10796381-original.jpg"},
+
+{id: 2, continent: "AFRIQUE", pays: "LIBYE", valeur: "1/2", devise: "LYD", annee: "2002", etat: "F", flag: "🇱🇾",
+ recto: "https://en.numista.com/catalogue/photos/libye/64da9795cab1e5.41900450-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/libye/64da9796d34e63.20428199-original.jpg"},
+
+{id: 3, continent: "AFRIQUE", pays: "LIBYE", valeur: "1", devise: "LYD", annee: "2004", etat: "VF", flag: "🇱🇾",
+ recto: "https://en.numista.com/catalogue/photos/libye/63f397b0396644.40086164-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/libye/63f397b1c3feb5.14696570-original.jpg"},
+
+{id: 4, continent: "AFRIQUE", pays: "LIBYE", valeur: "1", devise: "LYD", annee: "2009", etat: "VF", flag: "🇱🇾",
+ recto: "https://en.numista.com/catalogue/photos/libye/63f397f630e040.48381849-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/libye/63f397f7cac3f6.12191463-original.jpg"},
+
+{id: 5, continent: "AFRIQUE", pays: "LIBYE", valeur: "1", devise: "LYD", annee: "2013", etat: "UNC", flag: "🇱🇾",
+ recto: "https://en.numista.com/catalogue/photos/libye/630d057022ea37.43361562-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/libye/630d0570c03447.77098565-original.jpg"},
+
+{id: 6, continent: "AFRIQUE", pays: "LIBYE", valeur: "1", devise: "LYD", annee: "2019", etat: "AUNC", flag: "🇱🇾",
+ recto: "https://en.numista.com/catalogue/photos/libye/639b566fa88365.15112574-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/libye/639b5670cd01b9.47337563-original.jpg"},
+
+{id: 7, continent: "AFRIQUE", pays: "LIBYE", valeur: "5", devise: "LYD", annee: "2009", etat: "F", flag: "🇱🇾",
+ recto: "https://en.numista.com/catalogue/photos/libye/67d4d0c0d193c1.15618625-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/libye/67d4d0c178fef9.47670500-original.jpg"},
+
+{id: 8, continent: "AFRIQUE", pays: "LIBYE", valeur: "5", devise: "LYD", annee: "2015", etat: "F", flag: "🇱🇾",
+ recto: "https://en.numista.com/catalogue/photos/libye/65c3c32f1f5955.62734106-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/libye/65c3c331e2cde2.21429409-original.jpg"},
+
+{id: 9, continent: "AFRIQUE", pays: "LIBYE", valeur: "10", devise: "LYD", annee: "2009", etat: "F", flag: "🇱🇾",
+ recto: "https://en.numista.com/catalogue/photos/libye/5eef3525418753.87004801-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/libye/5eef3525976001.22368322-original.jpg"},
+
+{id: 10, continent: "AFRIQUE", pays: "LIBYE", valeur: "20", devise: "LYD", annee: "2016", etat: "F", flag: "🇱🇾",
+ recto: "https://en.numista.com/catalogue/photos/libye/63b2a34830ebc8.55946626-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/libye/63b2a3492615a3.67708441-original.jpg"},
+
+{id: 11, continent: "AFRIQUE", pays: "LIBYE", valeur: "50", devise: "LYD", annee: "2008", etat: "VF", flag: "🇱🇾",
+ recto: "https://en.numista.com/catalogue/photos/libye/69076c34459861.62615258-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/libye/69076c3ebebdc1.80885678-original.jpg"},
+
+// EGYPTE (ID 12-24)
+{id: 12, continent: "AFRIQUE", pays: "EGYPTE", valeur: "5", devise: "PIASTRES", annee: "DEC1940", etat: "UNC", flag: "🇪🇬",
+ recto: "https://en.numista.com/catalogue/photos/egypte/62ca8a870a3131.86735153-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/egypte/62ca8a87b090d0.05087063-original.jpg"},
+
+{id: 13, continent: "AFRIQUE", pays: "EGYPTE", valeur: "25", devise: "PIASTRES", annee: "2004", etat: "UNC", flag: "🇪🇬",
+ recto: "https://en.numista.com/catalogue/photos/egypte/62ee780a48c353.97104051-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/egypte/62ee780b7af2b2.53563189-original.jpg"},
+
+{id: 14, continent: "AFRIQUE", pays: "EGYPTE", valeur: "50", devise: "PIASTRES", annee: "2017", etat: "UNC", flag: "🇪🇬",
+ recto: "https://en.numista.com/catalogue/photos/egypte/62ca89d2ce4741.54438971-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/egypte/62ca89d3828688.67320388-original.jpg"},
+
+{id: 15, continent: "AFRIQUE", pays: "EGYPTE", valeur: "1", devise: "LIVRES", annee: "2022", etat: "AUNC", flag: "🇪🇬",
+ recto: "https://en.numista.com/catalogue/photos/egypte/62ca8985351d61.35498269-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/egypte/62ca8985e7eb32.57499291-original.jpg"},
+
+{id: 16, continent: "AFRIQUE", pays: "EGYPTE", valeur: "5", devise: "LIVRES", annee: "2021", etat: "F", flag: "🇪🇬",
+ recto: "https://en.numista.com/catalogue/photos/egypte/62ffbcf706d561.78716980-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/egypte/62ffbcf87f8799.51585279-original.jpg"},
+
+{id: 17, continent: "AFRIQUE", pays: "EGYPTE", valeur: "10", devise: "LIVRES", annee: "2025", etat: "F", flag: "🇪🇬",
+ recto: "https://en.numista.com/catalogue/photos/egypte/5ebb4a8128f7f7.33241073-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/egypte/5ebb4a82250714.74355916-original.jpg"},
+
+{id: 18, continent: "AFRIQUE", pays: "EGYPTE", valeur: "10", devise: "LIVRES", annee: "2022", etat: "UNC", flag: "🇪🇬",
+ recto: "https://en.numista.com/catalogue/photos/egypte/63c4fd62ee0598.54564985-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/egypte/63c4fd63ab21f0.72467355-original.jpg"},
+
+{id: 19, continent: "AFRIQUE", pays: "EGYPTE", valeur: "20", devise: "LIVRES", annee: "2002", etat: "F", flag: "🇪🇬",
+ recto: "https://en.numista.com/catalogue/photos/egypte/609fece2a26434.44381065-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/egypte/633aef692a78c8.95285931-original.jpg"},
+
+{id: 20, continent: "AFRIQUE", pays: "EGYPTE", valeur: "20", devise: "LIVRES", annee: "2004", etat: "VG", flag: "🇪🇬",
+ recto: "https://en.numista.com/catalogue/photos/egypte/609fece2a26434.44381065-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/egypte/633aef692a78c8.95285931-original.jpg"},
+
+{id: 21, continent: "AFRIQUE", pays: "EGYPTE", valeur: "20", devise: "LIVRES", annee: "2023", etat: "VG", flag: "🇪🇬",
+ recto: "https://en.numista.com/catalogue/photos/egypte/64ba4c3af28d41.78830333-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/egypte/64ba4c3c439702.86688491-original.jpg"},
+
+{id: 22, continent: "AFRIQUE", pays: "EGYPTE", valeur: "50", devise: "LIVRES", annee: "2025", etat: "XF", flag: "🇪🇬",
+ recto: "https://en.numista.com/catalogue/photos/egypte/6182b07add1668.65057961-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/egypte/6182b07c9e3d76.14364816-original.jpg"},
+
+{id: 23, continent: "AFRIQUE", pays: "EGYPTE", valeur: "100", devise: "LIVRES", annee: "2021", etat: "F", flag: "🇪🇬",
+ recto: "https://en.numista.com/sales_archive/pictures/660dec8f550a6.jpg",
+ verso: "https://katzauction.b-cdn.net/imgs/104/104P_HG15a.jpg?ver=739815"},
+
+{id: 24, continent: "AFRIQUE", pays: "EGYPTE", valeur: "200", devise: "LIVRES", annee: "2023", etat: "F", flag: "🇪🇬",
+ recto: "https://en.numista.com/catalogue/photos/egypte/63299799a1fdd1.34918635-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/egypte/6329979a4cb0d2.75379206-original.jpg"},
+
+
+// ALGERIE (ID 41-44)
+{id: 41, continent: "AFRIQUE", pays: "ALGERIE", valeur: "500", devise: "DZD", annee: "2018", etat: "VF", flag: "🇩🇿",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/DZA_B410_P145_500DIN-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/DZA_B410_P145_500DINv-xs.jpg"},
+
+{id: 42, continent: "AFRIQUE", pays: "ALGERIE", valeur: "1000", devise: "DZD", annee: "2018", etat: "VF", flag: "🇩🇿",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/DZA_B411_P146_1000DIN-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/DZA_B411_P146_1000DINv-xs.jpg"},
+
+{id: 43, continent: "AFRIQUE", pays: "ALGERIE", valeur: "2000", devise: "DZD", annee: "2011", etat: "XF", flag: "🇩🇿",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/DZA_P144_2000DIN-xs.jpg",
+ verso: "https://numizon.s3.amazonaws.com/media/banknote/w/DZA_P144_2000DINv-xs.jpg"},
+
+{id: 44, continent: "AFRIQUE", pays: "ALGERIE", valeur: "2000", devise: "DZD", annee: "2020", etat: "VF", flag: "🇩🇿",
+ recto: "https://en.numista.com/catalogue/photos/algerie/67afe38c63a0c1.19197766-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/algerie/67afe38d20faa4.84518120-original.jpg"},
+
+// MAURITANIE (ID 45-49)
+{id: 45, continent: "AFRIQUE", pays: "MAURITANIE", valeur: "50", devise: "OUGUIYA", annee: "2023", etat: "UNC", flag: "🇲🇷",
+ recto: "https://en.numista.com/catalogue/photos/mauritanie/6549fdde5dafe6.47907226-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/mauritanie/6549fddf7f5804.77897255-original.jpg"},
+
+{id: 46, continent: "AFRIQUE", pays: "MAURITANIE", valeur: "100", devise: "OUGUIYA", annee: "2020", etat: "VF", flag: "🇲🇷",
+ recto: "https://en.numista.com/catalogue/photos/mauritanie/630d0033808a68.45407965-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/mauritanie/630d0034419a78.21153192-original.jpg"},
+
+{id: 47, continent: "AFRIQUE", pays: "MAURITANIE", valeur: "200", devise: "OUGUIYA", annee: "2017", etat: "UNC", flag: "🇲🇷",
+ recto: "https://en.numista.com/catalogue/photos/mauritanie/63b2a585a43bb3.53466336-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/mauritanie/63b2a586aa32a5.48577926-original.jpg"},
+
+{id: 48, continent: "AFRIQUE", pays: "MAURITANIE", valeur: "500", devise: "OUGUIYA", annee: "2020", etat: "UNC", flag: "🇲🇷",
+ recto: "https://en.numista.com/catalogue/photos/mauritanie/63f387cb37d464.26692817-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/mauritanie/63f387cc8bfa97.29750372-original.jpg"},
+
+{id: 49, continent: "AFRIQUE", pays: "MAURITANIE", valeur: "1000", devise: "OUGUIYA", annee: "2017", etat: "F", flag: "🇲🇷",
+ recto: "https://en.numista.com/catalogue/photos/mauritanie/63f38316d4d0f1.00075962-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/mauritanie/63f3831887d566.84351299-original.jpg"},
+
+// CFA (ID 50-59)
+{id: 50, continent: "AFRIQUE", pays: "CFA", valeur: "500", devise: "XAF", annee: "2020", etat: "UNC", flag: "🌍",
+ recto: "https://en.numista.com/catalogue/photos/beac/64875652e369e9.63506503-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/beac/64875654365ab9.51029883-original.jpg"},
+
+{id: 51, continent: "AFRIQUE", pays: "CFA", valeur: "1000", devise: "XAF", annee: "2020", etat: "AUNC", flag: "🌍",
+ recto: "https://en.numista.com/catalogue/photos/beac/65ed7473bb5024.49438111-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/beac/65ed7477603fd0.98083155-original.jpg"},
+
+{id: 52, continent: "AFRIQUE", pays: "CFA", valeur: "2000", devise: "XAF", annee: "2020", etat: "AUNC", flag: "🌍",
+ recto: "https://en.numista.com/catalogue/photos/beac/65ed7694b4fe31.02186586-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/beac/65ed7697e71982.91033273-original.jpg"},
+
+{id: 53, continent: "AFRIQUE", pays: "CFA", valeur: "5000", devise: "XAF", annee: "2020", etat: "UNC", flag: "🌍",
+ recto: "https://en.numista.com/catalogue/photos/beac/63d3311f9e7431.95274362-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/beac/63d33126358001.22458693-original.jpg"},
+
+{id: 54, continent: "AFRIQUE", pays: "CFA", valeur: "10000", devise: "XAF", annee: "2020", etat: "UNC", flag: "🌍",
+ recto: "https://en.numista.com/catalogue/photos/beac/63d3343156bb96.82601142-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/beac/63d33432259c91.86893111-original.jpg"},
+
+{id: 55, continent: "AFRIQUE", pays: "CFA", valeur: "500", devise: "XOF", annee: "2012", etat: "UNC", flag: "🌍",
+ recto: "https://en.numista.com/catalogue/photos/bceao/678f7da91bd606.88143359-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/bceao/678f7dabde1f45.67722835-original.jpg"},
+
+{id: 56, continent: "AFRIQUE", pays: "CFA", valeur: "1000", devise: "XOF", annee: "2003", etat: "UNC", flag: "🌍",
+ recto: "https://en.numista.com/catalogue/photos/bceao/623ad80fd336a4.17321307-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/bceao/623ad81078de46.62512969-original.jpg"},
+
+{id: 57, continent: "AFRIQUE", pays: "CFA", valeur: "2000", devise: "XOF", annee: "2003", etat: "UNC", flag: "🌍",
+ recto: "https://en.numista.com/catalogue/photos/bceao/5eb5773a0558a9.57251661-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/bceao/5eb5773aec3753.21475154-original.jpg"},
+
+{id: 58, continent: "AFRIQUE", pays: "CFA", valeur: "5000", devise: "XOF", annee: "2003", etat: "UNC", flag: "🌍",
+ recto: "https://en.numista.com/catalogue/photos/bceao/60fc72c4afbe62.46300934-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/bceao/60fc72c596bfd3.48331952-original.jpg"},
+
+{id: 59, continent: "AFRIQUE", pays: "CFA", valeur: "10000", devise: "XOF", annee: "2003", etat: "UNC", flag: "🌍",
+ recto: "https://en.numista.com/catalogue/photos/bceao/5e94ef3b638099.57464769-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/bceao/5e94ef3ba738f6.20938941-original.jpg"},
+
+// UGANDA (ID 60-65)
+{id: 60, continent: "AFRIQUE", pays: "UGANDA", valeur: "1000", devise: "SHILLING", annee: "2022", etat: "UNC", flag: "🇺🇬",
+ recto: "https://en.numista.com/catalogue/photos/ouganda/6335bfee88fd37.38397930-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/ouganda/6335bfef46d2a3.54855103-original.jpg"},
+
+{id: 61, continent: "AFRIQUE", pays: "UGANDA", valeur: "2000", devise: "SHILLING", annee: "2024", etat: "UNC", flag: "🇺🇬",
+ recto: "https://en.numista.com/catalogue/photos/ouganda/626c2be95d7b42.63974346-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/ouganda/626c2bea1a79e8.79852818-original.jpg"},
+
+{id: 62, continent: "AFRIQUE", pays: "UGANDA", valeur: "5000", devise: "SHILLING", annee: "2024", etat: "UNC", flag: "🇺🇬",
+ recto: "https://en.numista.com/catalogue/photos/ouganda/6335c4ab0a38c1.77394965-original.jpg",
+ verso: "https://en.numista.com/catalogue/photos/ouganda/6335c4abb89362.84377342-original.jpg"},
+
+{id: 63, continent: "AFRIQUE", pays: "UGANDA", valeur: "10000", devise: "SHILLING", annee: "2023", etat: "G", flag: "🇺🇬",
+ recto: "https://en.numista.com/catalogue/photos/ouganda/6335c6739cf4d0.84361783-original.jpg", verso: "https://en.numista.com/catalogue/photos/ouganda/6335c674579f65.95639277-original.jpg"},
+
+{id: 64, continent: "AFRIQUE", pays: "UGANDA", valeur: "20000", devise: "SHILLING", annee: "2024", etat: "F", flag: "🇺🇬",
+ recto: "https://en.numista.com/catalogue/photos/ouganda/65a1658ec0d588.51451854-original.jpg", verso: "https://en.numista.com/catalogue/photos/ouganda/65a16591263065.89778658-original.jpg"},
+
+{id: 65, continent: "AFRIQUE", pays: "UGANDA", valeur: "50000", devise: "SHILLING", annee: "2024", etat: "VF", flag: "🇺🇬",
+ recto: "https://en.numista.com/catalogue/photos/ouganda/65c355b77d37e0.60424391-original.jpg", verso: "https://en.numista.com/catalogue/photos/ouganda/65c355babb18f5.15405520-original.jpg"},
+
+// KENYA (ID 66-70)
+{id: 66, continent: "AFRIQUE", pays: "KENYA", valeur: "50", devise: "SHILINGI", annee: "2019", etat: "VF", flag: "🇰🇪",
+ recto: "https://en.numista.com/catalogue/photos/kenya/63e4aa5d45fc51.99279118-original.jpg", verso: "https://en.numista.com/catalogue/photos/kenya/63e4aa5e0afd10.05422393-original.jpg"},
+
+{id: 67, continent: "AFRIQUE", pays: "KENYA", valeur: "100", devise: "SHILINGI", annee: "2024", etat: "AUNC", flag: "🇰🇪",
+ recto: "https://en.numista.com/catalogue/photos/kenya/63e4aa729f5665.26139298-original.jpg", verso: "https://en.numista.com/catalogue/photos/kenya/63e4aa735ac7b1.99775404-original.jpg"},
+
+{id: 68, continent: "AFRIQUE", pays: "KENYA", valeur: "200", devise: "SHILINGI", annee: "2024", etat: "VF", flag: "🇰🇪",
+ recto: "https://en.numista.com/catalogue/photos/kenya/65c359819e9757.33389568-original.jpg", verso: "https://en.numista.com/catalogue/photos/kenya/65c359840c8658.88322289-original.jpg"},
+
+{id: 69, continent: "AFRIQUE", pays: "KENYA", valeur: "500", devise: "SHILINGI", annee: "2019", etat: "VF", flag: "🇰🇪",
+ recto: "https://en.numista.com/catalogue/photos/kenya/63e4aa895f1cb8.84084614-original.jpg", verso: "https://en.numista.com/catalogue/photos/kenya/63e4aa8a16dde4.28224227-original.jpg"},
+
+{id: 70, continent: "AFRIQUE", pays: "KENYA", valeur: "1000", devise: "SHILINGI", annee: "2019", etat: "XF", flag: "🇰🇪",
+ recto: "https://en.numista.com/catalogue/photos/kenya/63e4aa9d884680.68788164-original.jpg", verso: "https://en.numista.com/catalogue/photos/kenya/63e4aa9e33bd46.66867600-original.jpg"},
+
+// RDC (ID 71-75)
+{id: 71, continent: "AFRIQUE", pays: "RDC", valeur: "10", devise: "FRANCS", annee: "2003", etat: "UNC", flag: "🇨🇩",
+ recto: "https://en.numista.com/catalogue/photos/democratic_republic_congo_period/653ab9b574e258.81227563-original.jpg", verso: "https://en.numista.com/catalogue/photos/democratic_republic_congo_period/653ab9b59c1f06.11672087-original.jpg"},
+
+{id: 72, continent: "AFRIQUE", pays: "RDC", valeur: "20", devise: "FRANCS", annee: "2003", etat: "UNC", flag: "🇨🇩",
+ recto: "https://en.numista.com/catalogue/photos/democratic_republic_congo_period/653ab9b6752b23.54211045-original.jpg", verso: "https://en.numista.com/catalogue/photos/democratic_republic_congo_period/653ab9b6884185.92837731-original.jpg"},
+
+{id: 73, continent: "AFRIQUE", pays: "RDC", valeur: "50", devise: "FRANCS", annee: "2007", etat: "UNC", flag: "🇨🇩",
+ recto: "https://en.numista.com/catalogue/photos/democratic_republic_congo_period/653ab9b77f8e90.17117839-original.jpg", verso: "https://en.numista.com/catalogue/photos/democratic_republic_congo_period/653ab9b7947c33.06612616-original.jpg"},
+
+{id: 74, continent: "AFRIQUE", pays: "RDC", valeur: "100", devise: "FRANCS", annee: "2007", etat: "UNC", flag: "🇨🇩",
+ recto: "https://en.numista.com/catalogue/photos/democratic_republic_congo_period/653ab9b8168d45.88091461-original.jpg", verso: "https://en.numista.com/catalogue/photos/democratic_republic_congo_period/653ab9b82e5172.71942355-original.jpg"},
+
+{id: 75, continent: "AFRIQUE", pays: "RDC", valeur: "500", devise: "FRANCS", annee: "2002", etat: "F", flag: "🇨🇩",
+ recto: "https://en.numista.com/catalogue/photos/democratic_republic_congo_period/653ab9b8bb2b38.06114821-original.jpg", verso: "https://en.numista.com/catalogue/photos/democratic_republic_congo_period/653ab9b8cd2c42.22544404-original.jpg"},
+
+// MADAGASCAR (ID 76-83)
+{id: 76, continent: "AFRIQUE", pays: "MADAGASCAR", valeur: "100", devise: "ARIARY", annee: "2017", etat: "UNC", flag: "🇲🇬",
+ recto: "https://en.numista.com/catalogue/photos/madagascar/626e49a9cec388.51209237-original.jpg", verso: "https://en.numista.com/catalogue/photos/madagascar/626e49aa7fd390.44452747-original.jpg"},
+
+{id: 77, continent: "AFRIQUE", pays: "MADAGASCAR", valeur: "200", devise: "ARIARY", annee: "2017", etat: "UNC", flag: "🇲🇬",
+ recto: "https://en.numista.com/catalogue/photos/madagascar/626e49c85beed4.33513435-original.jpg", verso: "https://en.numista.com/catalogue/photos/madagascar/626e49c96556f4.16363626-original.jpg"},
+
+{id: 78, continent: "AFRIQUE", pays: "MADAGASCAR", valeur: "500", devise: "ARIARY", annee: "2017", etat: "UNC", flag: "🇲🇬",
+ recto: "https://en.numista.com/catalogue/photos/madagascar/626e49efdbc005.01007436-original.jpg", verso: "https://en.numista.com/catalogue/photos/madagascar/626e49f0ab5873.57038086-original.jpg"},
+
+{id: 79, continent: "AFRIQUE", pays: "MADAGASCAR", valeur: "1000", devise: "ARIARY", annee: "2017", etat: "UNC", flag: "🇲🇬",
+ recto: "https://en.numista.com/catalogue/photos/madagascar/626e4a0ed76d81.77634154-original.jpg", verso: "https://en.numista.com/catalogue/photos/madagascar/626e4a0fbc5080.17133499-original.jpg"},
+
+{id: 80, continent: "AFRIQUE", pays: "MADAGASCAR", valeur: "2000", devise: "ARIARY", annee: "2017", etat: "UNC", flag: "🇲🇬",
+ recto: "https://en.numista.com/catalogue/photos/madagascar/626e4a2995d493.26515148-original.jpg", verso: "https://en.numista.com/catalogue/photos/madagascar/626e4a2aa875d4.22807091-original.jpg"},
+
+{id: 81, continent: "AFRIQUE", pays: "MADAGASCAR", valeur: "5000", devise: "ARIARY", annee: "2017", etat: "VF", flag: "🇲🇬",
+ recto: "https://en.numista.com/catalogue/photos/madagascar/653954a1d1cc03.89394900-original.jpg", verso: "https://en.numista.com/catalogue/photos/madagascar/653954a340dd00.58651848-original.jpg"},
+
+{id: 82, continent: "AFRIQUE", pays: "MADAGASCAR", valeur: "10000", devise: "ARIARY", annee: "2017", etat: "VF", flag: "🇲🇬",
+ recto: "https://en.numista.com/catalogue/photos/madagascar/653952aece1945.07504222-original.jpg", verso: "https://en.numista.com/catalogue/photos/madagascar/653952b01589d1.77388524-original.jpg"},
+
+{id: 83, continent: "AFRIQUE", pays: "MADAGASCAR", valeur: "20000", devise: "ARIARY", annee: "2017", etat: "XF", flag: "🇲🇬",
+ recto: "https://en.numista.com/catalogue/photos/madagascar/5e981883c35ff4.68402508-original.jpg", verso: "https://en.numista.com/catalogue/photos/madagascar/5e9818841993d0.18703620-original.jpg"},
+
+// MALAWI (ID 84-86)
+{id: 84, continent: "AFRIQUE", pays: "MALAWI", valeur: "5", devise: "KWACHA", annee: "2005", etat: "UNC", flag: "🇲🇼",
+ recto: "https://en.numista.com/catalogue/photos/malawi/6270ed7c21a838.63676489-original.jpg", verso: "https://en.numista.com/catalogue/photos/malawi/6270ed7c92c5b9.76756912-original.jpg"},
+
+{id: 85, continent: "AFRIQUE", pays: "MALAWI", valeur: "10", devise: "KWACHA", annee: "2004", etat: "UNC", flag: "🇲🇼",
+ recto: "https://en.numista.com/catalogue/photos/malawi/641339ac3a10f8.94268227-original.jpg", verso: "https://en.numista.com/catalogue/photos/malawi/641339af46b5c4.08135551-original.jpg"},
+
+{id: 86, continent: "AFRIQUE", pays: "MALAWI", valeur: "20", devise: "KWACHA", annee: "2006", etat: "UNC", flag: "🇲🇼",
+ recto: "https://en.numista.com/catalogue/photos/malawi/629862850dc288.26118709-original.jpg", verso: "https://en.numista.com/catalogue/photos/malawi/62986285aca0c3.14721869-original.jpg"},
+
+// NIGERIA (ID 87-101)
+{id: 87, continent: "AFRIQUE", pays: "NIGERIA", valeur: "1", devise: "LIVRE", annee: "1965", etat: "G", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/65422f0462c726.23696608-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/65422f04ad4df0.36796403-original.jpg"},
+
+{id: 88, continent: "AFRIQUE", pays: "NIGERIA", valeur: "5", devise: "NAIRA", annee: "2001", etat: "G", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/627363c1c80587.10409217-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/627363c2970d79.17049161-original.jpg"},
+
+{id: 89, continent: "AFRIQUE", pays: "NIGERIA", valeur: "5", devise: "NAIRA", annee: "2022", etat: "UNC", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/65d90e01b1cae7.82129389-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/68587cd4205981.13949641-original.jpg"},
+
+{id: 90, continent: "AFRIQUE", pays: "NIGERIA", valeur: "10", devise: "NAIRA", annee: "2008", etat: "UNC", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/677ce91fa82f82.16423902-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/677ce920c0b766.38073386-original.jpg"},
+
+{id: 91, continent: "AFRIQUE", pays: "NIGERIA", valeur: "10", devise: "NAIRA", annee: "2022", etat: "UNC", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/65d90cbb5cb908.58030000-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/65d90cbe076b12.12329783-original.jpg"},
+
+{id: 92, continent: "AFRIQUE", pays: "NIGERIA", valeur: "20", devise: "NAIRA", annee: "2001", etat: "G", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/61cdc174e98e61.06023054-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/61cdc1757598c5.55732792-original.jpg"},
+
+{id: 93, continent: "AFRIQUE", pays: "NIGERIA", valeur: "20", devise: "NAIRA", annee: "2021", etat: "UNC", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/65ed64fb194309.91343204-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/65ed64fe3bab17.92040495-original.jpg"},
+
+{id: 94, continent: "AFRIQUE", pays: "NIGERIA", valeur: "50", devise: "NAIRA", annee: "2001", etat: "G", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/61cdc46bd2a4d1.42380326-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/61cdc46c4bda86.76642934-original.jpg"},
+
+{id: 95, continent: "AFRIQUE", pays: "NIGERIA", valeur: "50", devise: "NAIRA", annee: "2007", etat: "UNC", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/62f149cb9ed1c4.21762539-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/62f149cd1d9ec5.87607580-original.jpg"},
+
+{id: 96, continent: "AFRIQUE", pays: "NIGERIA", valeur: "50", devise: "NAIRA", annee: "2024", etat: "UNC", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/684f0fcd7c50e2.55228464-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/684f0fce586eb6.90519835-original.jpg"},
+
+{id: 97, continent: "AFRIQUE", pays: "NIGERIA", valeur: "100", devise: "NAIRA", annee: "2024", etat: "UNC", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/66c75558167e40.50950376-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/66c7555a470220.27358643-original.jpg"},
+
+{id: 98, continent: "AFRIQUE", pays: "NIGERIA", valeur: "200", devise: "NAIRA", annee: "2024", etat: "UNC", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/67766907810bc7.72002190-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/67766909ae6dc8.65080578-original.jpg"},
+
+{id: 99, continent: "AFRIQUE", pays: "NIGERIA", valeur: "500", devise: "NAIRA", annee: "2024", etat: "UNC", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/66cf3a30e01504.41871271-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/66cf3a317d7dd9.57099977-original.jpg"},
+
+{id: 100, continent: "AFRIQUE", pays: "NIGERIA", valeur: "1000", devise: "NAIRA", annee: "2024", etat: "UNC", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/66c7586be38230.02164910-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/66c7586e4e0ad7.86338777-original.jpg"},
+
+{id: 101, continent: "AFRIQUE", pays: "NIGERIA", valeur: "1000", devise: "NAIRA", annee: "2021", etat: "G", flag: "🇳🇬",
+ recto: "https://en.numista.com/catalogue/photos/nigeria/64e5061c4a2e24.37684045-original.jpg", verso: "https://en.numista.com/catalogue/photos/nigeria/64e5061d408592.10380690-original.jpg"},
+
+// SUDAN (ID 102)
+{id: 102, continent: "AFRIQUE", pays: "SUDAN", valeur: "20", devise: "LIVRES", annee: "2017", etat: "UNC", flag: "🇸🇩",
+ recto: "https://en.numista.com/catalogue/photos/soudan/639751d627c897.24779844-original.jpg", verso: "https://en.numista.com/catalogue/photos/soudan/639751d715ac61.55339664-original.jpg"},
+
+// ETHIOPIE (ID 103)
+{id: 103, continent: "AFRIQUE", pays: "ETHIOPIE", valeur: "100", devise: "BIRR", annee: "2004-2012", etat: "F", flag: "🇪🇹",
+ recto: "https://en.numista.com/catalogue/photos/ethiopie/61da243b131121.20359210-original.jpg", verso: "https://en.numista.com/catalogue/photos/ethiopie/61da243b547889.53001313-original.jpg"},
+
+// SOUTH SUDAN (ID 104-105)
+{id: 104, continent: "AFRIQUE", pays: "SOUTH SUDAN", valeur: "5", devise: "SUDANESE L", annee: "2015", etat: "UNC", flag: "🇸🇸",
+ recto: "https://en.numista.com/catalogue/photos/sud_soudan/62b9d9107caa49.78871012-original.jpg", verso: "https://en.numista.com/catalogue/photos/sud_soudan/62b9d91127d338.48003071-original.jpg"},
+
+{id: 105, continent: "AFRIQUE", pays: "SOUTH SUDAN", valeur: "10", devise: "SUDANESE L", annee: "2015", etat: "UNC", flag: "🇸🇸",
+ recto: "https://en.numista.com/catalogue/photos/sud_soudan/656aee5224dbe6.29761912-original.jpg", verso: "https://en.numista.com/catalogue/photos/sud_soudan/656aee53d47500.64905657-original.jpg"},
+
+// LIBERIA (ID 106)
+{id: 106, continent: "AFRIQUE", pays: "LIBERIA", valeur: "5", devise: "DOLLARS", annee: "1991", etat: "G", flag: "🇱🇷",
+ recto: "https://en.numista.com/sales_archive/pictures/64d4a82e0a944.jpg", verso: "https://en.numista.com/sales_archive/pictures/66e5594689fd0.jpg"},
+
+// SIERRA LEONE (ID 107)
+{id: 107, continent: "AFRIQUE", pays: "SIERRA LEONE", valeur: "1", devise: "LEONE", annee: "2022", etat: "UNC", flag: "🇸🇱",
+ recto: "https://en.numista.com/catalogue/photos/sierra_leone/6335c8f37a1b97.70937696-original.jpg", verso: "https://en.numista.com/catalogue/photos/sierra_leone/6335c8f43b5da8.93974573-original.jpg"},
+
+// DJIBOUTI (ID 108)
+{id: 108, continent: "AFRIQUE", pays: "DJIBOUTI", valeur: "40", devise: "FRANCS", annee: "2017", etat: "UNC", flag: "🇩🇯",
+ recto: "https://en.numista.com/catalogue/photos/djibouti_period/6538fd69e40746.36378101-original.jpg", verso: "https://en.numista.com/catalogue/photos/djibouti_period/6538fd69eceff2.37651953-original.jpg"},
+
+// ERITREA (ID 109)
+{id: 109, continent: "AFRIQUE", pays: "ERITREA", valeur: "1", devise: "NAKFA", annee: "1997", etat: "UNC", flag: "🇪🇷",
+ recto: "https://en.numista.com/catalogue/photos/erythree/6270e32149f2a5.94078499-original.jpg", verso: "https://en.numista.com/catalogue/photos/erythree/6270e321e48029.35645930-original.jpg"},
+
+// SOMALIE (ID 110)
+{id: 110, continent: "AFRIQUE", pays: "SOMALIE", valeur: "20000", devise: "SHILIN", annee: "2010", etat: "UNC", flag: "🇸🇴",
+ recto: "https://en.numista.com/catalogue/photos/somalie/6877c071f26e03.90391061-original.jpg", verso: "https://en.numista.com/catalogue/photos/somalie/6877c0742691c4.62934200-original.jpg"},
+
+// GUINÉE (ID 111)
+{id: 111, continent: "AFRIQUE", pays: "GUINÉE", valeur: "100", devise: "FRANCS", annee: "2012", etat: "UNC", flag: "🇬🇳",
+ recto: "https://images3.cgb.fr/images/billets/b97/b97_6830a.jpg", verso: "https://images3.cgb.fr/images/billets/b97/b97_6830r.jpg"},
+
+// GHANA (ID 112)
+{id: 112, continent: "AFRIQUE", pays: "GHANA", valeur: "50", devise: "CEDIS", annee: "2019", etat: "F", flag: "🇬🇭",
+ recto: "https://en.numista.com/catalogue/photos/ghana/5ea149d9c583b9.82616750-original.jpg", verso: "https://en.numista.com/catalogue/photos/ghana/5ea149da2c6a36.40119408-original.jpg"},
+
+// RWANDA (ID 113)
+{id: 113, continent: "AFRIQUE", pays: "RWANDA", valeur: "100", devise: "FRANCS", annee: "2003", etat: "UNC", flag: "🇷🇼",
+ recto: "https://images3.cgb.fr/images/billets/b97/b97_0611a.jpg", verso: "https://images3.cgb.fr/images/billets/b97/b97_0611r.jpg"},
+
+// BURUNDI (ID 114-116)
+{id: 114, continent: "AFRIQUE", pays: "BURUNDI", valeur: "10", devise: "FRANCS", annee: "1995", etat: "UNC", flag: "🇧🇮",
+ recto: "https://en.numista.com/catalogue/photos/burundi/6287370ad082f8.88003490-original.jpg", verso: "https://en.numista.com/catalogue/photos/burundi/6287370b7ac225.49456785-original.jpg"},
+
+{id: 115, continent: "AFRIQUE", pays: "BURUNDI", valeur: "100", devise: "FRANCS", annee: "2010", etat: "UNC", flag: "🇧🇮",
+ recto: "https://en.numista.com/catalogue/photos/burundi/6298c3b9c26d60.49686458-original.jpg", verso: "https://en.numista.com/catalogue/photos/burundi/6298c3ba5e6bf1.80107277-original.jpg"},
+
+{id: 116, continent: "AFRIQUE", pays: "BURUNDI", valeur: "100", devise: "FRANCS", annee: "2011", etat: "UNC", flag: "🇧🇮",
+ recto: "https://en.numista.com/catalogue/photos/burundi/6298c3b9c26d60.49686458-original.jpg", verso: "https://en.numista.com/catalogue/photos/burundi/6298c3ba5e6bf1.80107277-original.jpg"},
+
+// NAMIBIA (ID 117)
+{id: 117, continent: "AFRIQUE", pays: "NAMIBIA", valeur: "10", devise: "DOLLARS", annee: "2001", etat: "UNC", flag: "🇳🇦",
+ recto: "https://en.numista.com/catalogue/photos/namibia_period/6537c8de7e1286.90947222-original.jpg", verso: "https://en.numista.com/sales_archive/pictures/67653d0832f33.jpg"},
+
+// MOZAMBIQUE (ID 118)
+{id: 118, continent: "AFRIQUE", pays: "MOZAMBIQUE", valeur: "50000", devise: "METICAIS", annee: "1993", etat: "UNC", flag: "🇲🇿",
+ recto: "https://en.numista.com/sales_archive/pictures/678781af2b104.jpg", verso: "https://en.numista.com/sales_archive/pictures/678781afd2071.jpg"},
+
+// TANZANIA (ID 119-120)
+{id: 119, continent: "AFRIQUE", pays: "TANZANIA", valeur: "1000", devise: "SHILINGI", annee: "2010", etat: "AUNC", flag: "🇹🇿",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/TZA_P041_B140_1000_SHI-xs.jpg", verso: "https://numizon.s3.amazonaws.com/media/banknote/w/TZA_P041_B140_1000_SHIv-xs.jpg"},
+
+{id: 120, continent: "AFRIQUE", pays: "TANZANIA", valeur: "10000", devise: "SHILINGI", annee: "2010", etat: "F", flag: "🇹🇿",
+ recto: "https://numizon.s3.amazonaws.com/media/banknote/w/TZA_P044_B143_10000_SHI-xs.jpg", verso: "https://numizon.s3.amazonaws.com/media/banknote/w/TZA_P044_B143_10000_SHIv-xs.jpg"},
+
+// ANGOLA (ID 121-122)
+{id: 121, continent: "AFRIQUE", pays: "ANGOLA", valeur: "5", devise: "KWANZAS", annee: "2012", etat: "UNC", flag: "🇦🇴",
+ recto: "https://images3.cgb.fr/images/billets/b78/b78_0508a.jpg", verso: "https://images3.cgb.fr/images/billets/b78/b78_0508r.jpg"},
+
+{id: 122, continent: "AFRIQUE", pays: "ANGOLA", valeur: "10", devise: "KWANZAS", annee: "2012", etat: "UNC", flag: "🇦🇴",
+ recto: "https://images3.cgb.fr/images/billets/500001_600000/510001_520000/516667a.jpg", verso: "https://images3.cgb.fr/images/billets/500001_600000/510001_520000/516667r.jpg"},
+
+// ZAMBIA (ID 123-124)
+{id: 123, continent: "AFRIQUE", pays: "ZAMBIA", valeur: "50", devise: "KWACHA", annee: "1986", etat: "UNC", flag: "🇿🇲",
+ recto: "https://images3.cgb.fr/images/billets/b79/b79_0250a.jpg", verso: "https://images3.cgb.fr/images/billets/b79/b79_0250r.jpg"},
+
+{id: 124, continent: "AFRIQUE", pays: "ZAMBIA", valeur: "100", devise: "KWACHA", annee: "2006", etat: "UNC", flag: "🇿🇲",
+ recto: "https://en.numista.com/catalogue/photos/zambie/5e99ea42057a32.13673415-original.jpg", verso: "https://en.numista.com/catalogue/photos/zambie/5e99ea42715292.70979134-original.jpg"},
+
+// GAMBIA (ID 125)
+{id: 125, continent: "AFRIQUE", pays: "GAMBIA", valeur: "5", devise: "DALASIS", annee: "INC", etat: "UNC", flag: "🇬🇲",
+ recto: "https://en.numista.com/catalogue/photos/gambie/62b9f3d6cf8752.39005222-original.jpg", verso: "https://en.numista.com/catalogue/photos/gambie/62b9f3d78225b2.42984963-original.jpg"},
+
+// AFRIQUE DU SUD (ID 126)
+{id: 126, continent: "AFRIQUE", pays: "AF.DU SUD", valeur: "10", devise: "RAND", annee: "2023", etat: "UNC", flag: "🇿🇦",
+ recto: "https://en.numista.com/catalogue/photos/afrique_du_sud/64ab21cc3c73e1.04264104-original.jpg", verso: "https://en.numista.com/catalogue/photos/afrique_du_sud/64ab21ccdf0490.60460931-original.jpg"},
+
+// SWAZILAND (ID 127)
+{id: 127, continent: "AFRIQUE", pays: "SWAZILAND", valeur: "10", devise: "EMALANGENTI", annee: "2015", etat: "UNC", flag: "🇸🇿",
+ recto: "https://en.numista.com/catalogue/photos/swaziland_period/653ac43cb1d2c9.86033971-original.jpg", verso: "https://en.numista.com/catalogue/photos/swaziland_period/653ac43cbf0715.27853719-original.jpg"},
+
+// LESOTHO (ID 128)
+{id: 128, continent: "AFRIQUE", pays: "LESOTHO", valeur: "10", devise: "MALOTI", annee: "2021", etat: "UNC", flag: "🇱🇸",
+ recto: "https://en.numista.com/catalogue/photos/lesotho/6654a5b83aaa55.43709342-original.jpg", verso: "https://en.numista.com/catalogue/photos/lesotho/6654a5baed57d7.45592804-original.jpg"},
+
+// ZIMBABWE (ID 129-131)
+{id: 129, continent: "AFRIQUE", pays: "ZIMBABWE", valeur: "10", devise: "DOLLARS", annee: "2009", etat: "UNC", flag: "🇿🇼",
+ recto: "https://en.numista.com/catalogue/photos/zimbabwe/64f833bf10bb92.44805030-original.jpg", verso: "https://en.numista.com/catalogue/photos/zimbabwe/64f833c22b3ab9.29470250-original.jpg"},
+
+{id: 130, continent: "AFRIQUE", pays: "ZIMBABWE", valeur: "1000", devise: "DOLLARS", annee: "2006", etat: "UNC", flag: "🇿🇼",
+ recto: "https://en.numista.com/catalogue/photos/zimbabwe/623d9838f2a895.31409867-original.jpg", verso: "https://en.numista.com/catalogue/photos/zimbabwe/623d98398c8b49.60959667-original.jpg"},
+
+{id: 131, continent: "AFRIQUE", pays: "ZIMBABWE", valeur: "50 BILLION", devise: "DOLLARS", annee: "2008", etat: "UNC", flag: "🇿🇼",
+ recto: "https://en.numista.com/catalogue/photos/zimbabwe/5ea56e36ba9401.89457850-original.jpg", verso: "https://en.numista.com/catalogue/photos/zimbabwe/674fba5dc1a1f8.16906265-original.jpg"},
+
+                
+                // AMERIQUE
+
+// VENEZUELA (ID 132-133)
+{id: 132, continent: "AMERIQUE", pays: "VENEZUELA", valeur: "2", devise: "BOLIVARES", annee: "2012", etat: "UNC", flag: "🇻🇪",
+ recto: "https://en.numista.com/catalogue/photos/venezuela/62fbbe5f47b9a0.94655196-original.jpg", verso: "https://en.numista.com/catalogue/photos/venezuela/62fbbe5fc68258.80130789-original.jpg"},
+
+{id: 133, continent: "AMERIQUE", pays: "VENEZUELA", valeur: "2000", devise: "BOLIVARES", annee: "2016", etat: "UNC", flag: "🇻🇪",
+ recto: "https://images3.cgb.fr/images/billets/500001_600000/550001_560000/552232a.jpg", verso: "https://images3.cgb.fr/images/billets/500001_600000/550001_560000/552232r.jpg"},
+
+// CANADA (ID 134-137)
+{id: 134, continent: "AMERIQUE", pays: "CANADA", valeur: "5", devise: "DOLLARS", annee: "1972", etat: "F", flag: "🇨🇦",
+ recto: "https://en.numista.com/catalogue/photos/canada/5e95396555ddc2.47709604-original.jpg", verso: "https://en.numista.com/catalogue/photos/canada/5e953965ad3257.09285014-original.jpg"},
+
+{id: 135, continent: "AMERIQUE", pays: "CANADA", valeur: "5", devise: "DOLLARS", annee: "1986", etat: "F", flag: "🇨🇦",
+ recto: "https://en.numista.com/catalogue/photos/canada/674b7ffbe1ea96.47846786-original.jpg", verso: "https://en.numista.com/catalogue/photos/canada/674b7ffd4697e6.02665950-original.jpg"},
+
+{id: 136, continent: "AMERIQUE", pays: "CANADA", valeur: "5", devise: "DOLLARS", annee: "2005", etat: "VF", flag: "🇨🇦",
+ recto: "https://en.numista.com/catalogue/photos/canada/623aee49d7d630.95321626-original.jpg", verso: "https://en.numista.com/catalogue/photos/canada/623aee4a6b3c47.85723724-original.jpg"},
+
+{id: 137, continent: "AMERIQUE", pays: "CANADA", valeur: "5", devise: "DOLLARS", annee: "2013", etat: "AUNC", flag: "🇨🇦",
+ recto: "https://en.numista.com/catalogue/photos/canada/63cd04c38c6563.32385328-original.jpg", verso: "https://en.numista.com/catalogue/photos/canada/63cd04c6d3ef26.23323347-original.jpg"},
+
+// MEXIQUE (ID 138)
+{id: 138, continent: "AMERIQUE", pays: "MEXIQUE", valeur: "100", devise: "PESOS", annee: "1981", etat: "F", flag: "🇲🇽",
+ recto: "https://en.numista.com/catalogue/photos/mexique/623b4a71af3663.07673700-original.jpg", verso: "https://en.numista.com/catalogue/photos/mexique/623b4a724027e3.94663173-original.jpg"},
+
+// HAITI (ID 139)
+{id: 139, continent: "AMERIQUE", pays: "HAITI", valeur: "10", devise: "GOURDES", annee: "2004", etat: "UNC", flag: "🇭🇹",
+ recto: "https://en.numista.com/catalogue/photos/haiti/63e654f9eebdd2.52607969-original.jpg", verso: "https://en.numista.com/catalogue/photos/haiti/63e654fd4667d9.23431925-original.jpg"},
+
+// JAMAICA (ID 140)
+{id: 140, continent: "AMERIQUE", pays: "JAMAICA", valeur: "50", devise: "DOLLARS", annee: "2022", etat: "UNC", flag: "🇯🇲",
+ recto: "https://en.numista.com/catalogue/photos/jamaique/64d1124ca75a42.81448460-original.jpg", verso: "https://en.numista.com/catalogue/photos/jamaique/64d1124ddaf795.05910422-original.jpg"},
+
+// PERU (ID 141-142)
+{id: 141, continent: "AMERIQUE", pays: "PERU", valeur: "10", devise: "INTIS", annee: "1987", etat: "UNC", flag: "🇵🇪",
+ recto: "https://en.numista.com/catalogue/photos/perou/623b65cd0ca453.48987122-original.jpg", verso: "https://en.numista.com/catalogue/photos/perou/623b65cdd1b751.28599041-original.jpg"},
+
+{id: 142, continent: "AMERIQUE", pays: "PERU", valeur: "5000", devise: "INTIS", annee: "1988", etat: "F", flag: "🇵🇪",
+ recto: "https://en.numista.com/catalogue/photos/perou/63977adab7cd99.75905170-original.jpg", verso: "https://en.numista.com/catalogue/photos/perou/63977adbaa65b1.13390109-original.jpg"},
+
+// REP. DOMINICAINE (ID 143)
+{id: 143, continent: "AMERIQUE", pays: "REP. DOMINIC.", valeur: "10", devise: "PESOS ORO", annee: "2003", etat: "F", flag: "🇩🇴",
+ recto: "https://en.numista.com/catalogue/photos/republique_dominicaine/61ccf76351aca6.91677903-original.jpg", verso: "https://en.numista.com/catalogue/photos/republique_dominicaine/61ccf763ac45b0.27823171-original.jpg"},
+
+// COLOMBIE (ID 144)
+{id: 144, continent: "AMERIQUE", pays: "COLOMBIE", valeur: "2000", devise: "PESOS", annee: "2020", etat: "G", flag: "🇨🇴",
+ recto: "https://en.numista.com/catalogue/photos/colombie/65eaef50900e25.60429107-original.jpg", verso: "https://en.numista.com/catalogue/photos/colombie/65eaef52eef592.84793552-original.jpg"},
+
+// BRASIL (ID 145-152)
+{id: 145, continent: "AMERIQUE", pays: "BRASIL", valeur: "500", devise: "CRUZADOS", annee: "INC", etat: "UNC", flag: "🇧🇷",
+ recto: "https://en.numista.com/catalogue/photos/bresil/5e9bd1fc174ed7.54952298-original.jpg", verso: "https://en.numista.com/catalogue/photos/bresil/5ebb8f40d0d050.58042023-original.jpg"},
+
+{id: 146, continent: "AMERIQUE", pays: "BRASIL", valeur: "2", devise: "REAIS", annee: "2010", etat: "XF", flag: "🇧🇷",
+ recto: "https://en.numista.com/catalogue/photos/bresil/5eb4b89f99c432.97713538-original.jpg", verso: "https://en.numista.com/catalogue/photos/bresil/5eb4b8a08cb728.23385429-original.jpg"},
+
+{id: 147, continent: "AMERIQUE", pays: "BRASIL", valeur: "5", devise: "REAIS", annee: "2010", etat: "XF", flag: "🇧🇷",
+ recto: "https://en.numista.com/catalogue/photos/bresil/63e65016e938d7.40651051-original.jpg", verso: "https://en.numista.com/catalogue/photos/bresil/63e6501a179a77.60863269-original.jpg"},
+
+{id: 148, continent: "AMERIQUE", pays: "BRASIL", valeur: "10", devise: "REAIS", annee: "2010", etat: "XF", flag: "🇧🇷",
+ recto: "https://en.numista.com/catalogue/photos/bresil/674b7fc7dc8e70.51208127-original.jpg", verso: "https://en.numista.com/catalogue/photos/bresil/674b7fc96e0442.55556856-original.jpg"},
+
+{id: 149, continent: "AMERIQUE", pays: "BRASIL", valeur: "20", devise: "REAIS", annee: "2010", etat: "XF", flag: "🇧🇷",
+ recto: "https://en.numista.com/catalogue/photos/bresil/64d7d12b765f03.15557920-original.jpg", verso: "https://en.numista.com/catalogue/photos/bresil/64d7d12cea9f28.76473344-original.jpg"},
+
+{id: 150, continent: "AMERIQUE", pays: "BRASIL", valeur: "50", devise: "REAIS", annee: "2010", etat: "XF", flag: "🇧🇷",
+ recto: "https://en.numista.com/catalogue/photos/bresil/64170b014767f8.64681963-original.jpg", verso: "https://en.numista.com/catalogue/photos/bresil/64170b03dfd832.61974943-original.jpg"},
+
+{id: 151, continent: "AMERIQUE", pays: "BRASIL", valeur: "100", devise: "REAIS", annee: "2010", etat: "XF", flag: "🇧🇷",
+ recto: "https://en.numista.com/catalogue/photos/bresil/64171011db8455.62600143-original.jpg", verso: "https://en.numista.com/catalogue/photos/bresil/641710144a7ef4.73943240-original.jpg"},
+
+{id: 152, continent: "AMERIQUE", pays: "BRASIL", valeur: "200", devise: "REAIS", annee: "2020", etat: "XF", flag: "🇧🇷",
+ recto: "", verso: ""},
+
+// CARAIBES (ID 153)
+{id: 153, continent: "AMERIQUE", pays: "CARAIBES", valeur: "2", devise: "DOLLARS", annee: "2023", etat: "UNC", flag: "🏝️",
+ recto: "", verso: ""},
+
+// HONDURAS (ID 154)
+{id: 154, continent: "AMERIQUE", pays: "HONDURAS", valeur: "1", devise: "LEMPIRA", annee: "1984", etat: "UNC", flag: "🇭🇳",
+ recto: "", verso: ""},
+
+// GUYANA (ID 155)
+{id: 155, continent: "AMERIQUE", pays: "GUYANA", valeur: "20", devise: "DOLLARS", annee: "INC", etat: "F", flag: "🇬🇾",
+ recto: "", verso: ""},
+
+// GUATEMALA (ID 156)
+{id: 156, continent: "AMERIQUE", pays: "GUATEMALA", valeur: "1", devise: "QUETZAL", annee: "2024", etat: "UNC", flag: "🇬🇹",
+ recto: "", verso: ""},
+
+// BOLIVIA (ID 157)
+{id: 157, continent: "AMERIQUE", pays: "BOLIVIA", valeur: "10", devise: "BOLIVANOS", annee: "2018", etat: "UNC", flag: "🇧🇴",
+ recto: "", verso: ""},
+
+// ARGENTINE (ID 158-159)
+{id: 158, continent: "AMERIQUE", pays: "ARGENTINE", valeur: "10", devise: "AUSTRALES", annee: "INC", etat: "XF", flag: "🇦🇷",
+ recto: "", verso: ""},
+
+{id: 159, continent: "AMERIQUE", pays: "ARGENTINE", valeur: "50", devise: "PESOS", annee: "2015", etat: "UNC", flag: "🇦🇷",
+ recto: "", verso: ""},
+
+// NICARAGUA (ID 160-161)
+{id: 160, continent: "AMERIQUE", pays: "NICARAGUA", valeur: "1", devise: "CENTAVO", annee: "1991", etat: "UNC", flag: "🇳🇮",
+ recto: "", verso: ""},
+
+{id: 161, continent: "AMERIQUE", pays: "NICARAGUA", valeur: "5", devise: "CENTAVOS", annee: "1991", etat: "UNC", flag: "🇳🇮",
+ recto: "", verso: ""},
+
+// BELIZE (ID 162)
+{id: 162, continent: "AMERIQUE", pays: "BELIZE", valeur: "2", devise: "DOLLARS", annee: "2017", etat: "UNC", flag: "🇧🇿",
+ recto: "", verso: ""},
+
+// BAHAMAS (ID 163)
+{id: 163, continent: "AMERIQUE", pays: "BAHAMAS", valeur: "50", devise: "CENT", annee: "2019", etat: "UNC", flag: "🇧🇸",
+ recto: "", verso: ""},
+
+// URUGUAY (ID 164)
+{id: 164, continent: "AMERIQUE", pays: "URUGUAY", valeur: "20", devise: "PESOS URU.", annee: "2020", etat: "UNC", flag: "🇺🇾",
+ recto: "", verso: ""},
+
+// PARAGUAY (ID 165)
+{id: 165, continent: "AMERIQUE", pays: "PARAGUAY", valeur: "2000", devise: "GUARANIES", annee: "2017", etat: "UNC", flag: "🇵🇾",
+ recto: "", verso: ""},
+
+// SURINAME (ID 166)
+{id: 166, continent: "AMERIQUE", pays: "SURINAME", valeur: "100", devise: "GULDEN", annee: "1986", etat: "UNC", flag: "🇸🇷",
+ recto: "", verso: ""},
+
+// U.S.A (ID 167-171)
+{id: 167, continent: "AMERIQUE", pays: "U.S.A", valeur: "1", devise: "DOLLAR", annee: "2009", etat: "F", flag: "🇺🇸",
+ recto: "", verso: ""},
+
+{id: 168, continent: "AMERIQUE", pays: "U.S.A", valeur: "1", devise: "DOLLAR", annee: "2017", etat: "VF", flag: "🇺🇸",
+ recto: "", verso: ""},
+
+{id: 169, continent: "AMERIQUE", pays: "U.S.A", valeur: "2", devise: "DOLLARS", annee: "2017", etat: "VF", flag: "🇺🇸",
+ recto: "", verso: ""},
+
+{id: 170, continent: "AMERIQUE", pays: "U.S.A", valeur: "5", devise: "DOLLARS", annee: "2017", etat: "VF", flag: "🇺🇸",
+ recto: "", verso: ""},
+
+{id: 171, continent: "AMERIQUE", pays: "U.S.A", valeur: "20", devise: "DOLLARS", annee: "2017", etat: "F", flag: "🇺🇸",
+ recto: "", verso: ""},
+
+                
+                // ASIE
+
+
+// SYRIE (ID 172-174)
+{id: 172, continent: "ASIE", pays: "SYRIE", valeur: "50", devise: "LIRES", annee: "2021", etat: "UNC", flag: "🇸🇾",
+ recto: "", verso: ""},
+
+{id: 173, continent: "ASIE", pays: "SYRIE", valeur: "100", devise: "LIRES", annee: "2021", etat: "UNC", flag: "🇸🇾",
+ recto: "", verso: ""},
+
+{id: 174, continent: "ASIE", pays: "SYRIE", valeur: "2000", devise: "LIRES", annee: "2018", etat: "UNC", flag: "🇸🇾",
+ recto: "", verso: ""},
+
+// IRAK (ID 175-176)
+{id: 175, continent: "ASIE", pays: "IRAK", valeur: "25", devise: "DINARS", annee: "1982", etat: "AUNC", flag: "🇮🇶",
+ recto: "", verso: ""},
+
+{id: 176, continent: "ASIE", pays: "IRAK", valeur: "50", devise: "DINARS", annee: "2003", etat: "UNC", flag: "🇮🇶",
+ recto: "", verso: ""},
+
+// JORDANIE (ID 177)
+{id: 177, continent: "ASIE", pays: "JORDANIE", valeur: "1", devise: "DINAR", annee: "2022", etat: "UNC", flag: "🇯🇴",
+ recto: "", verso: ""},
+
+// LIBAN (ID 178-182)
+{id: 178, continent: "ASIE", pays: "LIBAN", valeur: "5", devise: "LIRES", annee: "1986", etat: "UNC", flag: "🇱🇧",
+ recto: "", verso: ""},
+
+{id: 179, continent: "ASIE", pays: "LIBAN", valeur: "20000", devise: "LIRES", annee: "2004", etat: "VF", flag: "🇱🇧",
+ recto: "", verso: ""},
+
+{id: 180, continent: "ASIE", pays: "LIBAN", valeur: "50000", devise: "LIRES", annee: "2004", etat: "VF", flag: "🇱🇧",
+ recto: "", verso: ""},
+
+{id: 181, continent: "ASIE", pays: "LIBAN", valeur: "5000", devise: "LIRES", annee: "2014", etat: "AUNC", flag: "🇱🇧",
+ recto: "", verso: ""},
+
+{id: 182, continent: "ASIE", pays: "LIBAN", valeur: "10000", devise: "LIRES", annee: "2014", etat: "F", flag: "🇱🇧",
+ recto: "", verso: ""},
+
+// QATAR (ID 183-186)
+{id: 183, continent: "ASIE", pays: "QATAR", valeur: "1", devise: "RIYAL", annee: "2008", etat: "UNC", flag: "🇶🇦",
+ recto: "", verso: ""},
+
+{id: 184, continent: "ASIE", pays: "QATAR", valeur: "1", devise: "RIYAL", annee: "2022", etat: "XF", flag: "🇶🇦",
+ recto: "", verso: ""},
+
+{id: 185, continent: "ASIE", pays: "QATAR", valeur: "5", devise: "RIYALS", annee: "2022", etat: "UNC", flag: "🇶🇦",
+ recto: "", verso: ""},
+
+{id: 186, continent: "ASIE", pays: "QATAR", valeur: "10", devise: "RIYALS", annee: "2022", etat: "UNC", flag: "🇶🇦",
+ recto: "", verso: ""},
+
+// UAE (ID 187-190)
+{id: 187, continent: "ASIE", pays: "UAE", valeur: "5", devise: "DIRHAM", annee: "2013", etat: "VF", flag: "🇦🇪",
+ recto: "", verso: ""},
+
+{id: 188, continent: "ASIE", pays: "UAE", valeur: "100", devise: "DIRHAM", annee: "2018", etat: "VF", flag: "🇦🇪",
+ recto: "", verso: ""},
+
+{id: 189, continent: "ASIE", pays: "UAE", valeur: "200", devise: "DIRHAM", annee: "2017", etat: "UNC", flag: "🇦🇪",
+ recto: "", verso: ""},
+
+{id: 190, continent: "ASIE", pays: "UAE", valeur: "500", devise: "DIRHAM", annee: "2015", etat: "F", flag: "🇦🇪",
+ recto: "", verso: ""},
+
+// ARABIE SAOUDITE (ID 191-193)
+{id: 191, continent: "ASIE", pays: "AR. SAOUDITE", valeur: "1", devise: "RIYAL", annee: "2016", etat: "F", flag: "🇸🇦",
+ recto: "", verso: ""},
+
+{id: 192, continent: "ASIE", pays: "AR. SAOUDITE", valeur: "5", devise: "RIYALS", annee: "2007", etat: "F", flag: "🇸🇦",
+ recto: "", verso: ""},
+
+{id: 193, continent: "ASIE", pays: "AR. SAOUDITE", valeur: "5", devise: "RIYALS", annee: "2017", etat: "F", flag: "🇸🇦",
+ recto: "", verso: ""},
+
+// KUWAIT (ID 194)
+{id: 194, continent: "ASIE", pays: "KUWAIT", valeur: "1", devise: "DINAR", annee: "INC", etat: "UNC", flag: "🇰🇼",
+ recto: "", verso: ""},
+
+// BAHREIN (ID 195)
+{id: 195, continent: "ASIE", pays: "BAHREIN", valeur: "1", devise: "DINAR", annee: "INC", etat: "F", flag: "🇧🇭",
+ recto: "", verso: ""},
+
+// YEMEN (ID 196)
+{id: 196, continent: "ASIE", pays: "YEMEN", valeur: "1", devise: "RIAL", annee: "INC", etat: "G", flag: "🇾🇪",
+ recto: "", verso: ""},
+
+// OMAN (ID 197)
+{id: 197, continent: "ASIE", pays: "OMAN", valeur: "100", devise: "BAISA", annee: "1995", etat: "XF", flag: "🇴🇲",
+ recto: "", verso: ""},
+
+// AFGHANISTAN (ID 198-201)
+{id: 198, continent: "ASIE", pays: "AFGHANISTAN", valeur: "50", devise: "AFGHANIS", annee: "INC", etat: "UNC", flag: "🇦🇫",
+ recto: "", verso: ""},
+
+{id: 199, continent: "ASIE", pays: "AFGHANISTAN", valeur: "100", devise: "AFGHANIS", annee: "INC", etat: "UNC", flag: "🇦🇫",
+ recto: "", verso: ""},
+
+{id: 200, continent: "ASIE", pays: "AFGHANISTAN", valeur: "500", devise: "AFGHANIS", annee: "INC", etat: "UNC", flag: "🇦🇫",
+ recto: "", verso: ""},
+
+{id: 201, continent: "ASIE", pays: "AFGHANISTAN", valeur: "1000", devise: "AFGHANIS", annee: "INC", etat: "UNC", flag: "🇦🇫",
+ recto: "", verso: ""},
+
+// TURKMENISTAN (ID 202)
+{id: 202, continent: "ASIE", pays: "TURKMENISTAN", valeur: "1", devise: "MANAT", annee: "2014", etat: "UNC", flag: "🇹🇲",
+ recto: "", verso: ""},
+
+// TADJIKISTAN (ID 203-204)
+{id: 203, continent: "ASIE", pays: "TADJIKISTAN", valeur: "1", devise: "SOMONI", annee: "1994", etat: "UNC", flag: "🇹🇯",
+ recto: "", verso: ""},
+
+{id: 204, continent: "ASIE", pays: "TADJIKISTAN", valeur: "50", devise: "SOMONI", annee: "1994", etat: "UNC", flag: "🇹🇯",
+ recto: "", verso: ""},
+
+// KIRGHIZISTAN (ID 205-207)
+{id: 205, continent: "ASIE", pays: "KIRGHIZISTAN", valeur: "1", devise: "SOM", annee: "INC", etat: "UNC", flag: "🇰🇬",
+ recto: "", verso: ""},
+
+{id: 206, continent: "ASIE", pays: "KIRGHIZISTAN", valeur: "10", devise: "SOM", annee: "INC", etat: "UNC", flag: "🇰🇬",
+ recto: "", verso: ""},
+
+{id: 207, continent: "ASIE", pays: "KIRGHIZISTAN", valeur: "1", devise: "SOM", annee: "1999", etat: "UNC", flag: "🇰🇬",
+ recto: "", verso: ""},
+
+// AZERBAÏDJAN (ID 208)
+{id: 208, continent: "ASIE", pays: "AZERBAÏDJAN", valeur: "1", devise: "MANAT", annee: "2020", etat: "UNC", flag: "🇦🇿",
+ recto: "", verso: ""},
+
+// PAKISTAN (ID 209-210)
+{id: 209, continent: "ASIE", pays: "PAKISTAN", valeur: "10", devise: "RUPEES", annee: "2006", etat: "UNC", flag: "🇵🇰",
+ recto: "", verso: ""},
+
+{id: 210, continent: "ASIE", pays: "PAKISTAN", valeur: "75", devise: "RUPEES", annee: "2023", etat: "UNC", flag: "🇵🇰",
+ recto: "", verso: ""},
+
+// OUZBÉKISTAN (ID 211-214)
+{id: 211, continent: "ASIE", pays: "OUZBÉKISTAN", valeur: "100", devise: "SO'M", annee: "1994", etat: "UNC", flag: "🇺🇿",
+ recto: "", verso: ""},
+
+{id: 212, continent: "ASIE", pays: "OUZBÉKISTAN", valeur: "2000", devise: "SO'M", annee: "2021", etat: "VF", flag: "🇺🇿",
+ recto: "", verso: ""},
+
+{id: 213, continent: "ASIE", pays: "OUZBÉKISTAN", valeur: "5000", devise: "SO'M", annee: "2021", etat: "XF", flag: "🇺🇿",
+ recto: "", verso: ""},
+
+{id: 214, continent: "ASIE", pays: "OUZBÉKISTAN", valeur: "10000", devise: "SO'M", annee: "2021", etat: "UNC", flag: "🇺🇿",
+ recto: "", verso: ""},
+
+// KAZAKHSTAN (ID 215)
+{id: 215, continent: "ASIE", pays: "KAZAKHSTAN", valeur: "50", devise: "INC", annee: "1993", etat: "P", flag: "🇰🇿",
+ recto: "", verso: ""},
+
+// IRAN (ID 216-217)
+{id: 216, continent: "ASIE", pays: "IRAN", valeur: "1", devise: "RIAL", annee: "INC", etat: "UNC", flag: "🇮🇷",
+ recto: "", verso: ""},
+
+{id: 217, continent: "ASIE", pays: "IRAN", valeur: "2", devise: "RIALS", annee: "INC", etat: "UNC", flag: "🇮🇷",
+ recto: "", verso: ""},
+
+// ISRAEL (ID 218)
+{id: 218, continent: "ASIE", pays: "ISRAEL", valeur: "10", devise: "SHEKEL", annee: "1973", etat: "UNC", flag: "🇮🇱",
+ recto: "", verso: ""},
+
+// INDE (ID 219-221)
+{id: 219, continent: "ASIE", pays: "INDE", valeur: "5", devise: "RUPEES", annee: "INC", etat: "UNC", flag: "🇮🇳",
+ recto: "", verso: ""},
+
+{id: 220, continent: "ASIE", pays: "INDE", valeur: "10", devise: "RUPEES", annee: "INC", etat: "XF", flag: "🇮🇳",
+ recto: "", verso: ""},
+
+{id: 221, continent: "ASIE", pays: "INDE", valeur: "100", devise: "RUPEES", annee: "INC", etat: "VF", flag: "🇮🇳",
+ recto: "", verso: ""},
+
+// SRI LANKA (ID 222)
+{id: 222, continent: "ASIE", pays: "SRI LANKA", valeur: "20", devise: "RUPEES", annee: "2021", etat: "UNC", flag: "🇱🇰",
+ recto: "", verso: ""},
+
+// BANGLADESH (ID 223)
+{id: 223, continent: "ASIE", pays: "BANGLADESH", valeur: "5", devise: "TKA", annee: "INC", etat: "UNC", flag: "🇧🇩",
+ recto: "", verso: ""},
+
+// BUTHAN (ID 224)
+{id: 224, continent: "ASIE", pays: "BUTHAN", valeur: "1", devise: "NGULTRUM", annee: "2019", etat: "UNC", flag: "🇧🇹",
+ recto: "", verso: ""},
+
+// NEPALE (ID 225-226)
+{id: 225, continent: "ASIE", pays: "NEPALE", valeur: "1", devise: "RUPEE", annee: "INC", etat: "UNC", flag: "🇳🇵",
+ recto: "", verso: ""},
+
+{id: 226, continent: "ASIE", pays: "NEPALE", valeur: "5", devise: "RUPEES", annee: "INC", etat: "UNC", flag: "🇳🇵",
+ recto: "", verso: ""},
+
+// VIETNAM (ID 227-229)
+{id: 227, continent: "ASIE", pays: "VIETNAM", valeur: "500", devise: "DONG", annee: "1988", etat: "UNC", flag: "🇻🇳",
+ recto: "", verso: ""},
+
+{id: 228, continent: "ASIE", pays: "VIETNAM", valeur: "1000", devise: "DONG", annee: "1988", etat: "UNC", flag: "🇻🇳",
+ recto: "", verso: ""},
+
+{id: 229, continent: "ASIE", pays: "VIETNAM", valeur: "2000", devise: "DONG", annee: "1988", etat: "UNC", flag: "🇻🇳",
+ recto: "", verso: ""},
+
+// CHINE (ID 230-236)
+{id: 230, continent: "ASIE", pays: "CHINE", valeur: "INC", devise: "INC", annee: "1951", etat: "UNC", flag: "🇨🇳",
+ recto: "", verso: ""},
+
+{id: 231, continent: "ASIE", pays: "CHINE", valeur: "INC", devise: "INC", annee: "1951", etat: "UNC", flag: "🇨🇳",
+ recto: "", verso: ""},
+
+{id: 232, continent: "ASIE", pays: "CHINE", valeur: "1", devise: "YUAN", annee: "1999", etat: "VF", flag: "🇨🇳",
+ recto: "", verso: ""},
+
+{id: 233, continent: "ASIE", pays: "CHINE", valeur: "1", devise: "YUAN", annee: "2019", etat: "UNC", flag: "🇨🇳",
+ recto: "", verso: ""},
+
+{id: 234, continent: "ASIE", pays: "CHINE", valeur: "5", devise: "YUAN", annee: "2005", etat: "VF", flag: "🇨🇳",
+ recto: "", verso: ""},
+
+{id: 235, continent: "ASIE", pays: "CHINE", valeur: "10", devise: "YUAN", annee: "2019", etat: "UNC", flag: "🇨🇳",
+ recto: "", verso: ""},
+
+{id: 236, continent: "ASIE", pays: "CHINE", valeur: "20", devise: "YUAN", annee: "2019", etat: "AUNC", flag: "🇨🇳",
+ recto: "", verso: ""},
+
+// MONGOLIE (ID 237-238)
+{id: 237, continent: "ASIE", pays: "MONGOLIE", valeur: "5", devise: "TUGRIK", annee: "2002", etat: "UNC", flag: "🇲🇳",
+ recto: "", verso: ""},
+
+{id: 238, continent: "ASIE", pays: "MONGOLIE", valeur: "10", devise: "TUGRIK", annee: "2002", etat: "UNC", flag: "🇲🇳",
+ recto: "", verso: ""},
+
+// CORÉE DU SUD (ID 239)
+{id: 239, continent: "ASIE", pays: "CORÉE DU SUD", valeur: "1000", devise: "WON", annee: "2007", etat: "UNC", flag: "🇰🇷",
+ recto: "", verso: ""},
+
+// CORÉE DU NORD (ID 240-250)
+{id: 240, continent: "ASIE", pays: "CORÉE DU NORD", valeur: "5", devise: "WON", annee: "1981", etat: "UNC", flag: "🇰🇵",
+ recto: "https://en.numista.com/catalogue/photos/coree_du_nord/63bbf1c0430986.82496833-original.jpg", verso: "https://en.numista.com/catalogue/photos/coree_du_nord/63bbf1c30fb547.24460486-original.jpg"},
+
+{id: 241, continent: "ASIE", pays: "CORÉE DU NORD", valeur: "5", devise: "WON", annee: "2002", etat: "SPECIMEN", flag: "🇰🇵",
+ recto: "https://en.numista.com/sales_archive/pictures/660d319f07deb.jpg", verso: "https://en.numista.com/sales_archive/pictures/660d319fbdafe.jpg"},
+
+{id: 242, continent: "ASIE", pays: "CORÉE DU NORD", valeur: "10", devise: "WON", annee: "2002", etat: "SPECIMEN", flag: "🇰🇵",
+ recto: "https://en.numista.com/sales_archive/pictures/660d31a0d5242.jpg", verso: "https://en.numista.com/catalogue/photos/coree_du_nord/5ea9f886b5ef43.22874263-original.jpg"},
+
+{id: 243, continent: "ASIE", pays: "CORÉE DU NORD", valeur: "50", devise: "WON", annee: "2002", etat: "SPECIMEN", flag: "🇰🇵",
+ recto: "https://en.numista.com/sales_archive/pictures/660d8c492a12e.jpg", verso: "https://en.numista.com/catalogue/photos/coree_du_nord/63bbf485ecab46.53764701-original.jpg"},
+
+{id: 244, continent: "ASIE", pays: "CORÉE DU NORD", valeur: "100", devise: "WON", annee: "2008", etat: "SPECIMEN", flag: "🇰🇵",
+ recto: "", verso: ""},
+
+{id: 245, continent: "ASIE", pays: "CORÉE DU NORD", valeur: "200", devise: "WON", annee: "2008", etat: "SPECIMEN", flag: "🇰🇵",
+ recto: "", verso: ""},
+
+{id: 246, continent: "ASIE", pays: "CORÉE DU NORD", valeur: "500", devise: "WON", annee: "2008", etat: "SPECIMEN", flag: "🇰🇵",
+ recto: "", verso: ""},
+
+{id: 247, continent: "ASIE", pays: "CORÉE DU NORD", valeur: "1000", devise: "WON", annee: "2008", etat: "SPECIMEN", flag: "🇰🇵",
+ recto: "", verso: ""},
+
+{id: 248, continent: "ASIE", pays: "CORÉE DU NORD", valeur: "2000", devise: "WON", annee: "2008", etat: "SPECIMEN", flag: "🇰🇵",
+ recto: "", verso: ""},
+
+{id: 249, continent: "ASIE", pays: "CORÉE DU NORD", valeur: "5000", devise: "WON", annee: "2008", etat: "SPECIMEN", flag: "🇰🇵",
+ recto: "", verso: ""},
+
+{id: 250, continent: "ASIE", pays: "CORÉE DU NORD", valeur: "5000", devise: "WON", annee: "2013", etat: "SPECIMEN", flag: "🇰🇵",
+ recto: "", verso: ""},
+
+                
+
+// ASIE (suite) - ID 251-271
+
+{id: 251, continent: "ASIE", pays: "BRUNEI", valeur: "1", devise: "DOLLAR", annee: "1996", etat: "AUNC", flag: "🇧🇳",
+ recto: "", verso: ""},
+
+{id: 252, continent: "ASIE", pays: "PHILIPPINES", valeur: "10", devise: "PESO", annee: "1981", etat: "UNC", flag: "🇵🇭",
+ recto: "", verso: ""},
+
+{id: 253, continent: "ASIE", pays: "CAMBODGE", valeur: "1/2", devise: "INC", annee: "1979", etat: "UNC", flag: "🇰🇭",
+ recto: "", verso: ""},
+
+{id: 254, continent: "ASIE", pays: "CAMBODGE", valeur: "100", devise: "RIELS", annee: "1972", etat: "UNC", flag: "🇰🇭",
+ recto: "", verso: ""},
+
+{id: 255, continent: "ASIE", pays: "LAOS", valeur: "500", devise: "KIPS", annee: "1988", etat: "UNC", flag: "🇱🇦",
+ recto: "", verso: ""},
+
+{id: 256, continent: "ASIE", pays: "BURMA", valeur: "10", devise: "KYATS", annee: "1973", etat: "UNC", flag: "🇲🇲",
+ recto: "", verso: ""},
+
+{id: 257, continent: "ASIE", pays: "THAILAND", valeur: "20", devise: "BAHTS", annee: "1981", etat: "UNC", flag: "🇹🇭",
+ recto: "", verso: ""},
+
+{id: 258, continent: "ASIE", pays: "THAILAND", valeur: "50", devise: "BAHTS", annee: "2017", etat: "XF", flag: "🇹🇭",
+ recto: "", verso: ""},
+
+{id: 259, continent: "ASIE", pays: "HONG KONG", valeur: "10", devise: "DOLLARS", annee: "2007", etat: "VF", flag: "🇭🇰",
+ recto: "", verso: ""},
+
+{id: 260, continent: "ASIE", pays: "HONG KONG", valeur: "50", devise: "DOLLARS", annee: "2018", etat: "VF", flag: "🇭🇰",
+ recto: "", verso: ""},
+
+{id: 261, continent: "ASIE", pays: "HONG KONG", valeur: "100", devise: "DOLLARS", annee: "2018", etat: "UNC", flag: "🇭🇰",
+ recto: "", verso: ""},
+
+{id: 262, continent: "ASIE", pays: "MACAU", valeur: "10", devise: "PATACAS", annee: "2022", etat: "UNC", flag: "🇲🇴",
+ recto: "", verso: ""},
+
+{id: 263, continent: "ASIE", pays: "MALAYSIA", valeur: "1", devise: "RM", annee: "", etat: "F", flag: "🇲🇾",
+ recto: "", verso: ""},
+
+{id: 264, continent: "ASIE", pays: "MALAYSIA", valeur: "1", devise: "RM", annee: "2011", etat: "UNC", flag: "🇲🇾",
+ recto: "", verso: ""},
+
+{id: 265, continent: "ASIE", pays: "SINGAPORE", valeur: "5", devise: "DOLLARS", annee: "2004", etat: "VF", flag: "🇸🇬",
+ recto: "", verso: ""},
+
+{id: 266, continent: "ASIE", pays: "INDONESIA", valeur: "100", devise: "RUPIAH", annee: "1992", etat: "UNC", flag: "🇮🇩",
+ recto: "", verso: ""},
+
+{id: 267, continent: "ASIE", pays: "INDONESIA", valeur: "2000", devise: "RUPIAH", annee: "2013", etat: "UNC", flag: "🇮🇩",
+ recto: "", verso: ""},
+
+{id: 268, continent: "ASIE", pays: "MALDIVES", valeur: "5", devise: "RUFIYAA", annee: "2017", etat: "UNC", flag: "🇲🇻",
+ recto: "", verso: ""},
+
+
+{id: 269, continent: "ASIE", pays: "ARMENIE", valeur: "10", devise: "DRAM", annee: "1993", etat: "UNC", flag: "🇦🇲",
+ recto: "", verso: ""},
+
+{id: 270, continent: "ASIE", pays: "ARMENIE", valeur: "100", devise: "DRAM", annee: "1998", etat: "UNC", flag: "🇦🇲",
+ recto: "", verso: ""},
+
+{id: 271, continent: "ASIE", pays: "GEORGIE", valeur: "250", devise: "KUPONI", annee: "1993", etat: "UNC", flag: "🇬🇪",
+ recto: "", verso: ""},
+
+
+
+// PAPOUASIE-NOUVELLE-GUINÉE (ID 272)
+{id: 272, continent: "OCEANIE", pays: "PAP.NOU.GUINEE", valeur: "2", devise: "KINA", annee: "2017", etat: "UNC", flag: "🇵🇬",
+ recto: "", verso: ""},
+
+// ILES SALOMON (ID 273-274)
+{id: 273, continent: "OCEANIE", pays: "ILES SALOMON", valeur: "5", devise: "DOLLARS", annee: "2004", etat: "UNC", flag: "🇸🇧",
+ recto: "", verso: ""},
+
+{id: 274, continent: "OCEANIE", pays: "ILES SALOMON", valeur: "5", devise: "DOLLARS", annee: "2019", etat: "UNC", flag: "🇸🇧",
+ recto: "", verso: ""},
+
+// SAMOA (ID 275)
+{id: 275, continent: "OCEANIE", pays: "SAMOA", valeur: "5", devise: "LIVRES", annee: "2020", etat: "UNC", flag: "🇼🇸",
+ recto: "", verso: ""},
+
+// ============================================================
+// EUROPE - 35 billets (ID 276-312)
+// ============================================================
+
+// CROATIE (ID 276-278)
+{id: 276, continent: "EUROPE", pays: "CROATIE", valeur: "1", devise: "DINARA", annee: "1991", etat: "UNC", flag: "🇭🇷",
+ recto: "", verso: ""},
+
+{id: 277, continent: "EUROPE", pays: "CROATIE", valeur: "5", devise: "DINARA", annee: "1991", etat: "UNC", flag: "🇭🇷",
+ recto: "", verso: ""},
+
+{id: 278, continent: "EUROPE", pays: "CROATIE", valeur: "100", devise: "DINARA", annee: "1991", etat: "UNC", flag: "🇭🇷",
+ recto: "", verso: ""},
+
+// SERBIE (ID 279-283)
+{id: 279, continent: "EUROPE", pays: "SERBIE", valeur: "10", devise: "DINARS", annee: "2006", etat: "UNC", flag: "🇷🇸",
+ recto: "", verso: ""},
+
+{id: 280, continent: "EUROPE", pays: "SERBIE", valeur: "20", devise: "DINARS", annee: "2013", etat: "F", flag: "🇷🇸",
+ recto: "", verso: ""},
+
+{id: 281, continent: "EUROPE", pays: "SERBIE", valeur: "50", devise: "DINARS", annee: "2014", etat: "VF", flag: "🇷🇸",
+ recto: "", verso: ""},
+
+{id: 282, continent: "EUROPE", pays: "SERBIE", valeur: "100", devise: "DINARS", annee: "2013", etat: "F", flag: "🇷🇸",
+ recto: "", verso: ""},
+
+{id: 283, continent: "EUROPE", pays: "SERBIE", valeur: "1000", devise: "DINARS", annee: "2014", etat: "VF", flag: "🇷🇸",
+ recto: "", verso: ""},
+
+// MACEDOINE (ID 284)
+{id: 284, continent: "EUROPE", pays: "MACEDOINE", valeur: "10", devise: "DENIERS", annee: "2018", etat: "UNC", flag: "🇲🇰",
+ recto: "", verso: ""},
+
+// HONGRIE (ID 285)
+{id: 285, continent: "EUROPE", pays: "HONGRIE", valeur: "2000", devise: "FORNIT", annee: "2020", etat: "VF", flag: "🇭🇺",
+ recto: "", verso: ""},
+
+// REP.TCHEQUE (ID 286)
+{id: 286, continent: "EUROPE", pays: "REP.TCHEQUE", valeur: "50", devise: "COURONNES", annee: "1997", etat: "F", flag: "🇨🇿",
+ recto: "", verso: ""},
+
+// POLOGNE (ID 287)
+{id: 287, continent: "EUROPE", pays: "POLOGNE", valeur: "50", devise: "ZLOTYCH", annee: "1975", etat: "F", flag: "🇵🇱",
+ recto: "", verso: ""},
+
+// ROUMANIE (ID 288-289)
+{id: 288, continent: "EUROPE", pays: "ROUMANIE", valeur: "1", devise: "LEU", annee: "2005", etat: "UNC", flag: "🇷🇴",
+ recto: "", verso: ""},
+
+{id: 289, continent: "EUROPE", pays: "ROUMANIE", valeur: "5", devise: "LEI", annee: "2005", etat: "VF", flag: "🇷🇴",
+ recto: "", verso: ""},
+
+// SUEDE (ID 290)
+{id: 290, continent: "EUROPE", pays: "SUEDE", valeur: "20", devise: "COURONNES", annee: "2015", etat: "VF", flag: "🇸🇪",
+ recto: "", verso: ""},
+
+// BULGARIE (ID 291-292)
+{id: 291, continent: "EUROPE", pays: "BULGARIE", valeur: "5", devise: "LEVA", annee: "2020", etat: "UNC", flag: "🇧🇬",
+ recto: "", verso: ""},
+
+{id: 292, continent: "EUROPE", pays: "BULGARIE", valeur: "10", devise: "LEVA", annee: "2020", etat: "F", flag: "🇧🇬",
+ recto: "", verso: ""},
+
+// MOLDOVA (ID 293)
+{id: 293, continent: "EUROPE", pays: "MOLDOVA", valeur: "1", devise: "LEU", annee: "2015", etat: "UNC", flag: "🇲🇩",
+ recto: "", verso: ""},
+
+// SLOVENIE (ID 294)
+{id: 294, continent: "EUROPE", pays: "SLOVENIE", valeur: "20", devise: "TOLAR", annee: "1992", etat: "F", flag: "🇸🇮",
+ recto: "", verso: ""},
+
+// UKRAINE (ID 295-296)
+{id: 295, continent: "EUROPE", pays: "UKRAINE", valeur: "1", devise: "HRYVNIA", annee: "2014", etat: "UNC", flag: "🇺🇦",
+ recto: "", verso: ""},
+
+{id: 296, continent: "EUROPE", pays: "UKRAINE", valeur: "2", devise: "HRYVNIA", annee: "2013", etat: "UNC", flag: "🇺🇦",
+ recto: "", verso: ""},
+
+// TURQUIE (ID 297-299)
+{id: 297, continent: "EUROPE", pays: "TURQUIE", valeur: "5", devise: "LIRES", annee: "2009", etat: "VF", flag: "🇹🇷",
+ recto: "", verso: ""},
+
+{id: 298, continent: "EUROPE", pays: "TURQUIE", valeur: "20", devise: "LIRES", annee: "2009", etat: "UNC", flag: "🇹🇷",
+ recto: "", verso: ""},
+
+{id: 299, continent: "EUROPE", pays: "TURQUIE", valeur: "50", devise: "LIRES", annee: "2009", etat: "F", flag: "🇹🇷",
+ recto: "", verso: ""},
+
+// BELARUS (ID 300)
+{id: 300, continent: "EUROPE", pays: "BELARUS", valeur: "20", devise: "ROUBLES", annee: "2000", etat: "UNC", flag: "🇧🇾",
+ recto: "", verso: ""},
+
+// TCHECOSLOVAQUIE (ID 301)
+{id: 301, continent: "EUROPE", pays: "TCHECOSLOV.", valeur: "100", devise: "COURONNES", annee: "1961", etat: "G", flag: "🇨🇿",
+ recto: "", verso: ""},
+
+// YOUGOSLAVIE (ID 302)
+{id: 302, continent: "EUROPE", pays: "YOUGOSLAVIE", valeur: "10", devise: "DINARS", annee: "1978", etat: "UNC", flag: "🏳️",
+ recto: "", verso: ""},
+
+// RUSSIE (ID 303-304)
+{id: 303, continent: "EUROPE", pays: "RUSSIE", valeur: "200", devise: "ROUBLES", annee: "1993", etat: "F", flag: "🇷🇺",
+ recto: "", verso: ""},
+
+{id: 304, continent: "EUROPE", pays: "RUSSIE", valeur: "10", devise: "ROUBLES", annee: "1997", etat: "F", flag: "🇷🇺",
+ recto: "", verso: ""},
+
+// ANGLETERRE (ID 305-306)
+{id: 305, continent: "EUROPE", pays: "ANGLETERRE", valeur: "5", devise: "LIVRES", annee: "2002", etat: "VF", flag: "🇬🇧",
+ recto: "", verso: ""},
+
+{id: 306, continent: "EUROPE", pays: "ANGLETERRE", valeur: "10", devise: "LIVRES", annee: "2016", etat: "XF", flag: "🇬🇧",
+ recto: "", verso: ""},
+
+// TRANSNISTRIE (ID 307-309)
+{id: 307, continent: "EUROPE", pays: "TRANSNISTRIE", valeur: "1", devise: "ROUBLE", annee: "1994", etat: "UNC", flag: "🏴",
+ recto: "", verso: ""},
+
+{id: 308, continent: "EUROPE", pays: "TRANSNISTRIE", valeur: "5", devise: "ROUBLES", annee: "1994", etat: "UNC", flag: "🏴",
+ recto: "", verso: ""},
+
+{id: 309, continent: "EUROPE", pays: "TRANSNISTRIE", valeur: "10", devise: "ROUBLES", annee: "1994", etat: "UNC", flag: "🏴",
+ recto: "", verso: ""},
+
+// EURO (ID 310-312)
+{id: 310, continent: "EUROPE", pays: "EURO", valeur: "5", devise: "EUROS", annee: "2013", etat: "VF", flag: "🇪🇺",
+ recto: "", verso: ""},
+
+{id: 311, continent: "EUROPE", pays: "EURO", valeur: "10", devise: "EUROS", annee: "2014", etat: "UNC", flag: "🇪🇺",
+ recto: "", verso: ""},
+
+{id: 312, continent: "EUROPE", pays: "EURO", valeur: "20", devise: "EUROS", annee: "2002", etat: "VF", flag: "🇪🇺",
+ recto: "", verso: ""},
+            ];
+        }
+
+let allCoins = [];
+
+// Fonction pour initialiser les pièces
+function initCoins() {
+    allCoins = [
+        // PIÈCE 1
+        {id: 1, continent: "AFRIQUE", pays: "TUNISIE", valeur: "1/2", devise: "DINAR", annee: "1968", etat: "FDC", flag: "🇹🇳", 
+         recto: "https://en.numista.com/catalogue/photos/tunisie/1190-original.jpg", verso: "https://en.numista.com/catalogue/photos/tunisie/1191-original.jpg"},
+
+        // PIÈCE 2
+        {id: 2, continent: "AFRIQUE", pays: "TUNISIE", valeur: "1", devise: "DINAR", annee: "1970", etat: "SUP", flag: "🇹🇳", 
+         recto: "https://en.numista.com/catalogue/photos/tunisie/5f0578bf923728.79505717-original.jpg", verso: "https://en.numista.com/catalogue/photos/tunisie/5f0578c0193881.44863035-original.jpg"},
+
+        // PIÈCE 3
+        {id: 3, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "1976", etat: "FDC", flag: "🇹🇳", 
+         recto: "https://en.numista.com/catalogue/photos/tunisie/652c6206083b07.54038870-original.jpg", verso: "https://en.numista.com/catalogue/photos/tunisie/652c62066270e1.62437946-original.jpg"},
+
+        // PIÈCE 4
+        {id: 4, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "1978", etat: "SUP", flag: "🇹🇳", 
+         recto: "https://en.numista.com/catalogue/photos/tunisie/69429a2b852ed8.27922333-original.jpg", verso: "https://en.numista.com/catalogue/photos/tunisie/69429a2d851c00.06336853-original.jpg"},
+
+        // PIÈCE 5
+        {id: 5, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "1988", etat: "FDC", flag: "🇹🇳", 
+         recto: "https://s3.amazonaws.com/ngccoin-production/world-coin-price-guide/1525688-5779591-001rf.jpg", verso: "https://s3.amazonaws.com/ngccoin-production/world-coin-price-guide/1525688-5779591-001b.jpg"},
+
+        // PIÈCE 6
+        {id: 6, continent: "AFRIQUE", pays: "TUNISIE", valeur: "10", devise: "DINARS", annee: "1998", etat: "TB", flag: "🇹🇳", 
+         recto: "https://en.numista.com/catalogue/photos/tunisie/69429e54aa34d1.56330232-original.jpg", verso: "https://en.numista.com/catalogue/photos/tunisie/69429e568499d8.39115800-original.jpg"},
+
+        // PIÈCE 7
+        {id: 7, continent: "AFRIQUE", pays: "TUNISIE", valeur: "5", devise: "DINARS", annee: "1990", etat: "FDC", flag: "🇹🇳", 
+         recto: "", verso: ""},
+
+        // PIÈCE 8
+        {id: 8, continent: "AFRIQUE", pays: "MAROC", valeur: "250", devise: "DIRHAMS", annee: "2025", etat: "FDC", flag: "🇹🇳", 
+         recto: "https://cdn.snrtnews.com/sites/default/files/2025/11/06/whatsapp-image-2025-11-06-at-10-1762421025.jpeg", verso: "https://cdn.snrtnews.com/sites/default/files/2025/11/06/whatsapp-image-2025-11-06-at-10-1762421025.jpeg"},
+
+        // PIÈCE 9
+        {id: 9, continent: "AFRIQUE", pays: "MAROC", valeur: "250", devise: "DIRHAMS", annee: "2025", etat: "FDC", flag: "🇹🇳", 
+         recto: "https://cdn.snrtnews.com/sites/default/files/inline-images/piece-1766408745.jpg", verso: "https://cdn.snrtnews.com/sites/default/files/inline-images/piece-1766408745.jpg"}
+    ];
+}
+
+// Fonction pour afficher les pièces
+function showCoins() {
+    currentSection = 'coins';
+    document.querySelectorAll('.menu-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    const main = document.getElementById('mainContent');
+    
+    main.innerHTML = `
+        <div class="collection-header">
+            <h2>Pièces de Collection</h2>
+            <input type="text" class="search-box" id="coinSearch" placeholder="Rechercher une pièce...">
+        </div>
+        <div class="stats">${allCoins.length} pièce${allCoins.length > 1 ? 's' : ''}</div>
+        <div class="banknotes-grid">
+            ${allCoins.map(c => `
+                <div class="banknote-card" onclick='openModal(${JSON.stringify(c).replace(/'/g, "&#39;")}, true)'>
+                    <button class="favorite-btn ${favorites.includes('coin-' + c.id) ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('coin-' + ${c.id})">
+                        <span class="heart">${favorites.includes('coin-' + c.id) ? '❤' : '♡'}</span>
+                    </button>
+                    <div class="flip-container">
+                        <div class="flipper">
+                            <div class="front">
+                                ${c.recto ? `<img src="${c.recto}" alt="Face">` : `
+                                    <div style="z-index: 1; position: relative;">
+                                        <div style="font-size: 40px; margin-bottom: 10px;">🪙</div>
+                                        <div><strong>FACE</strong></div>
+                                        <div style="margin-top: 6px; font-size: 12px; opacity: 0.9;">Survolez pour voir le revers</div>
+                                    </div>
+                                `}
+                            </div>
+                            <div class="back">
+                                ${c.verso ? `<img src="${c.verso}" alt="Revers">` : `
+                                    <div style="z-index: 1; position: relative;">
+                                        <div style="font-size: 40px; margin-bottom: 10px;">🪙</div>
+                                        <div><strong>REVERS</strong></div>
+                                        <div style="margin-top: 6px; font-size: 12px; opacity: 0.9;">Photo à ajouter</div>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="banknote-info">
+                        <h3>${c.valeur} ${c.devise}</h3>
+                        <div class="banknote-details">
+                            <span class="badge">${c.pays}</span>
+                            <span class="badge">${c.annee}</span>
+                            <span class="badge">${c.etat}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    // Attacher l'événement de recherche pour les pièces
+    const searchBox = document.getElementById('coinSearch');
+    if (searchBox) {
+        searchBox.addEventListener('input', (e) => {
+            filterCoins(e.target.value);
+        });
+    }
+}
+
+// Fonction pour filtrer les pièces
+// Fonction pour filtrer les pièces
+function filterCoins(searchTerm) {
+    const term = searchTerm.toLowerCase();
+    const filtered = allCoins.filter(c => 
+        c.pays.toLowerCase().includes(term) ||
+        c.devise.toLowerCase().includes(term) ||
+        c.valeur.toString().toLowerCase().includes(term) ||
+        c.annee.toString().toLowerCase().includes(term)
+    );
+    
+    const main = document.getElementById('mainContent');
+    
+    // Sauvegarder la valeur actuelle de la recherche
+    const existingSearch = document.getElementById('coinSearch');
+    const savedValue = existingSearch ? existingSearch.value : searchTerm;
+    
+    main.innerHTML = `
+        <div class="collection-header">
+            <h2>Pièces de Collection</h2>
+            <input type="text" class="search-box" id="coinSearch" placeholder="Rechercher une pièce..." value="${savedValue}">
+        </div>
+        <div class="stats">${filtered.length} pièce${filtered.length > 1 ? 's' : ''}</div>
+        <div class="banknotes-grid">
+            ${filtered.map(c => `
+                <div class="banknote-card" onclick='openModal(${JSON.stringify(c).replace(/'/g, "&#39;")}, true)'>
+                    <button class="favorite-btn ${favorites.includes('coin-' + c.id) ? 'active' : ''}" onclick="event.stopPropagation(); toggleFavorite('coin-' + ${c.id})">
+                        <span class="heart">${favorites.includes('coin-' + c.id) ? '❤' : '♡'}</span>
+                    </button>
+                    <div class="flip-container">
+                        <div class="flipper">
+                            <div class="front">
+                                ${c.recto ? `<img src="${c.recto}" alt="Face">` : `
+                                    <div style="z-index: 1; position: relative;">
+                                        <div style="font-size: 40px; margin-bottom: 10px;">🪙</div>
+                                        <div><strong>FACE</strong></div>
+                                        <div style="margin-top: 6px; font-size: 12px; opacity: 0.9;">Survolez pour voir le revers</div>
+                                    </div>
+                                `}
+                            </div>
+                            <div class="back">
+                                ${c.verso ? `<img src="${c.verso}" alt="Revers">` : `
+                                    <div style="z-index: 1; position: relative;">
+                                        <div style="font-size: 40px; margin-bottom: 10px;">🪙</div>
+                                        <div><strong>REVERS</strong></div>
+                                        <div style="margin-top: 6px; font-size: 12px; opacity: 0.9;">Photo à ajouter</div>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="banknote-info">
+                        <h3>${c.valeur} ${c.devise}</h3>
+                        <div class="banknote-details">
+                            <span class="badge">${c.pays}</span>
+                            <span class="badge">${c.annee}</span>
+                            <span class="badge">${c.etat}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        ${filtered.length === 0 ? '<div style="text-align: center; color: #64748b; padding: 40px;">Aucune pièce trouvée</div>' : ''}
+    `;
+    
+    // Réattacher l'événement de recherche et restaurer le focus
+    const searchBox = document.getElementById('coinSearch');
+    if (searchBox) {
+        const cursorPos = savedValue.length;
+        searchBox.addEventListener('input', (e) => {
+            filterCoins(e.target.value);
+        });
+        searchBox.focus();
+        searchBox.setSelectionRange(cursorPos, cursorPos);
+    }
+}
+
+        // Initialisation
+async function init() {
+    initBanknotes();
+    initCoins(); // Charger les pièces
+    await loadFavorites();
+    showSection('presentation');
+}
+
+        if (typeof window.storage !== 'undefined') {
+            init();
+        } else {
+            window.addEventListener('load', init);
+        }
+let currentBanknote = null;
+let showingRecto = true;
+
+function openModal(banknote, isRecto) {
+    currentBanknote = banknote;
+    showingRecto = isRecto;
+    const modal = document.getElementById('modalZoom');
+    const img = document.getElementById('modalImage');
+    
+    if (isRecto && banknote.recto) {
+        img.src = banknote.recto;
+    } else if (!isRecto && banknote.verso) {
+        img.src = banknote.verso;
+    } else {
+        return;
+    }
+    
+    // Hauteur fixe pour tous les billets, largeur proportionnelle
+    img.style.height = '400px'; // Changez cette valeur selon vos besoins
+    img.style.width = 'auto';
+    img.style.maxWidth = '90vw';
+    img.style.maxHeight = '90vh';
+    img.style.objectFit = 'contain';
+    
+    modal.classList.add('active');
+}
+
+function closeModal(event) {
+    if (event.target.id === 'modalZoom' || event.target.className === 'close-modal') {
+        document.getElementById('modalZoom').classList.remove('active');
+    }
+}
+
+function switchSide(event) {
+    event.stopPropagation();
+    if (!currentBanknote) return;
+    
+    showingRecto = !showingRecto;
+    const img = document.getElementById('modalImage');
+    
+    if (showingRecto && currentBanknote.recto) {
+        img.src = currentBanknote.recto;
+    } else if (!showingRecto && currentBanknote.verso) {
+        img.src = currentBanknote.verso;
+    }
+}
+    </script>
+
+<!-- Modal pour le zoom -->
+<div class="modal-zoom" id="modalZoom" onclick="closeModal(event)">
+    <span class="close-modal" onclick="closeModal(event)">&times;</span>
+    <div class="modal-nav prev-nav" onclick="switchSide(event)">◄ VERSO</div>
+    <div class="modal-content">
+        <img class="modal-image" id="modalImage" src="" alt="Billet">
+    </div>
+    <div class="modal-nav next-nav" onclick="switchSide(event)">RECTO ►</div>
+</div>
+
+</body>
+</html>
